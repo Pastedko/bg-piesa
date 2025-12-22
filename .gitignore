@@ -1,0 +1,11 @@
+/__pycache__/
+/.venv/
+/.env
+media/*
+!media/.keep
+frontend/node_modules/
+frontend/dist/
+backend/.venv/
+.DS_Store
+Thumbs.db
+
