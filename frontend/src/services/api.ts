@@ -42,10 +42,33 @@ export const api = {
       `/api/authors${search ? `?search=${encodeURIComponent(search)}` : ''}`
     ),
   getAuthor: (id: string) => request<AuthorDetail>(`/api/authors/${id}`),
-  getPlays: (search?: string, authorId?: string) => {
+  getPlays: (filters?: {
+    search?: string
+    authorId?: string
+    genre?: string
+    theme?: string
+    yearMin?: number
+    yearMax?: number
+    durationMin?: number
+    durationMax?: number
+    maleParticipantsMin?: number
+    maleParticipantsMax?: number
+    femaleParticipantsMin?: number
+    femaleParticipantsMax?: number
+  }) => {
     const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (authorId) params.set('author_id', authorId)
+    if (filters?.search) params.set('search', filters.search)
+    if (filters?.authorId) params.set('author_id', filters.authorId)
+    if (filters?.genre) params.set('genre', filters.genre)
+    if (filters?.theme) params.set('theme', filters.theme)
+    if (filters?.yearMin !== undefined) params.set('year_min', String(filters.yearMin))
+    if (filters?.yearMax !== undefined) params.set('year_max', String(filters.yearMax))
+    if (filters?.durationMin !== undefined) params.set('duration_min', String(filters.durationMin))
+    if (filters?.durationMax !== undefined) params.set('duration_max', String(filters.durationMax))
+    if (filters?.maleParticipantsMin !== undefined) params.set('male_participants_min', String(filters.maleParticipantsMin))
+    if (filters?.maleParticipantsMax !== undefined) params.set('male_participants_max', String(filters.maleParticipantsMax))
+    if (filters?.femaleParticipantsMin !== undefined) params.set('female_participants_min', String(filters.femaleParticipantsMin))
+    if (filters?.femaleParticipantsMax !== undefined) params.set('female_participants_max', String(filters.femaleParticipantsMax))
     const query = params.toString()
     return request<Play[]>(`/api/plays${query ? `?${query}` : ''}`)
   },

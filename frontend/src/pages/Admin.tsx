@@ -17,6 +17,10 @@ type PlayFormState = {
   description: string
   year: string
   genre: string
+  theme: string
+  duration: string
+  male_participants: string
+  female_participants: string
   author_id: string
   imageUrls: string
 }
@@ -32,6 +36,10 @@ const initialPlayForm: PlayFormState = {
   description: '',
   year: '',
   genre: '',
+  theme: '',
+  duration: '',
+  male_participants: '',
+  female_participants: '',
   author_id: '',
   imageUrls: '',
 }
@@ -149,7 +157,11 @@ const Admin = () => {
       title: playForm.title,
       description: playForm.description,
       genre: playForm.genre || undefined,
+      theme: playForm.theme || undefined,
       year: playForm.year ? Number(playForm.year) : undefined,
+      duration: playForm.duration ? Number(playForm.duration) : undefined,
+      male_participants: playForm.male_participants ? Number(playForm.male_participants) : undefined,
+      female_participants: playForm.female_participants ? Number(playForm.female_participants) : undefined,
       author_id: Number(playForm.author_id),
       image_urls,
     }
@@ -185,7 +197,11 @@ const Admin = () => {
       title: play.title,
       description: play.description,
       genre: play.genre ?? '',
+      theme: play.theme ?? '',
       year: play.year ? String(play.year) : '',
+      duration: play.duration ? String(play.duration) : '',
+      male_participants: play.male_participants ? String(play.male_participants) : '',
+      female_participants: play.female_participants ? String(play.female_participants) : '',
       author_id: String(play.author_id),
       imageUrls: play.images?.map((img) => img.image_url).join('\n') ?? '',
     })
@@ -398,6 +414,50 @@ const Admin = () => {
                     onChange={(event) =>
                       setPlayForm({ ...playForm, genre: event.target.value })
                     }
+                  />
+                </label>
+                <label>
+                  Тема
+                  <input
+                    value={playForm.theme}
+                    onChange={(event) =>
+                      setPlayForm({ ...playForm, theme: event.target.value })
+                    }
+                  />
+                </label>
+              </div>
+              <div className="form__inline">
+                <label>
+                  Продължителност (минути)
+                  <input
+                    value={playForm.duration}
+                    onChange={(event) =>
+                      setPlayForm({ ...playForm, duration: event.target.value })
+                    }
+                    type="number"
+                    min="0"
+                  />
+                </label>
+                <label>
+                  Мъже участници
+                  <input
+                    value={playForm.male_participants}
+                    onChange={(event) =>
+                      setPlayForm({ ...playForm, male_participants: event.target.value })
+                    }
+                    type="number"
+                    min="0"
+                  />
+                </label>
+                <label>
+                  Жени участници
+                  <input
+                    value={playForm.female_participants}
+                    onChange={(event) =>
+                      setPlayForm({ ...playForm, female_participants: event.target.value })
+                    }
+                    type="number"
+                    min="0"
                   />
                 </label>
               </div>

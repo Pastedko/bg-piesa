@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .core.config import get_settings
 from .database import init_db, session_scope
+from .migrations import run_migrations
 from .routers import admin, authors, plays
 from .seed_data import seed_demo_data
 
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     def on_startup():
         init_db()
+        run_migrations()
         with session_scope() as session:
             seed_demo_data(session)
 

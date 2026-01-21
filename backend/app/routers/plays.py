@@ -24,6 +24,16 @@ settings = get_settings()
 def list_plays(
     search: Optional[str] = Query(default=None, description="Търсене по заглавие"),
     author_id: Optional[int] = Query(default=None, description="Филтър по автор"),
+    genre: Optional[str] = Query(default=None, description="Филтър по жанр"),
+    theme: Optional[str] = Query(default=None, description="Филтър по тема"),
+    year_min: Optional[int] = Query(default=None, description="Минимална година"),
+    year_max: Optional[int] = Query(default=None, description="Максимална година"),
+    duration_min: Optional[int] = Query(default=None, description="Минимална продължителност (минути)"),
+    duration_max: Optional[int] = Query(default=None, description="Максимална продължителност (минути)"),
+    male_participants_min: Optional[int] = Query(default=None, description="Минимален брой мъже"),
+    male_participants_max: Optional[int] = Query(default=None, description="Максимален брой мъже"),
+    female_participants_min: Optional[int] = Query(default=None, description="Минимален брой жени"),
+    female_participants_max: Optional[int] = Query(default=None, description="Максимален брой жени"),
     session: Session = Depends(get_session),
 ) -> List[PlayRead]:
     query = select(Play).options(selectinload(Play.author))
@@ -31,6 +41,26 @@ def list_plays(
         query = query.where(func.lower(Play.title).like(f"%{search.lower()}%"))
     if author_id:
         query = query.where(Play.author_id == author_id)
+    if genre:
+        query = query.where(Play.genre == genre)
+    if theme:
+        query = query.where(Play.theme == theme)
+    if year_min is not None:
+        query = query.where(Play.year >= year_min)
+    if year_max is not None:
+        query = query.where(Play.year <= year_max)
+    if duration_min is not None:
+        query = query.where(Play.duration >= duration_min)
+    if duration_max is not None:
+        query = query.where(Play.duration <= duration_max)
+    if male_participants_min is not None:
+        query = query.where(Play.male_participants >= male_participants_min)
+    if male_participants_max is not None:
+        query = query.where(Play.male_participants <= male_participants_max)
+    if female_participants_min is not None:
+        query = query.where(Play.female_participants >= female_participants_min)
+    if female_participants_max is not None:
+        query = query.where(Play.female_participants <= female_participants_max)
     plays = session.exec(query.order_by(Play.title)).all()
     return [PlayRead.from_orm(play) for play in plays]
 
