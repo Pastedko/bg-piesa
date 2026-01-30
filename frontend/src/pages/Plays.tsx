@@ -293,120 +293,27 @@ const Plays = () => {
               <div className="filter-group">
                 <button
                   className="filter-label"
-                  onClick={() => toggleFilter('cast')}
+                  onClick={() => toggleFilter('genre')}
                   type="button"
                 >
-                  <span>СЪСТАВ</span>
+                  <span>ЖАНР</span>
                   <span className="filter-toggle">
-                    {expandedFilters.cast ? '−' : '+'}
+                    {expandedFilters.genre ? '−' : '+'}
                   </span>
                 </button>
-                {expandedFilters.cast && (
+                {expandedFilters.genre && (
                   <div className="filter-content">
-                  <div className="slider-group">
-                    <label>
-                      Мъже: {maleParticipantsMin} - {maleParticipantsMax}
-                    </label>
-                    <div className="range-inputs">
-                      <input
-                        type="range"
-                        min="0"
-                        max={participantsRange.maxMale || 20}
-                        value={maleParticipantsMin}
-                        onChange={(e) => {
-                          const val = Number(e.target.value)
-                          setMaleParticipantsMin(Math.min(val, maleParticipantsMax))
-                        }}
-                      />
-                      <input
-                        type="range"
-                        min="0"
-                        max={participantsRange.maxMale || 20}
-                        value={maleParticipantsMax}
-                        onChange={(e) => {
-                          const val = Number(e.target.value)
-                          setMaleParticipantsMax(Math.max(val, maleParticipantsMin))
-                        }}
-                      />
-                    </div>
-                    <div className="range-values">
-                      <input
-                        type="number"
-                        min="0"
-                        max={participantsRange.maxMale || 20}
-                        value={maleParticipantsMin}
-                        onChange={(e) => {
-                          const val = Math.max(0, Math.min(Number(e.target.value), maleParticipantsMax))
-                          setMaleParticipantsMin(val)
-                        }}
-                        style={{ width: '60px' }}
-                      />
-                      <span>-</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max={participantsRange.maxMale || 20}
-                        value={maleParticipantsMax}
-                        onChange={(e) => {
-                          const val = Math.min(participantsRange.maxMale || 20, Math.max(Number(e.target.value), maleParticipantsMin))
-                          setMaleParticipantsMax(val)
-                        }}
-                        style={{ width: '60px' }}
-                      />
-                    </div>
-                  </div>
-                  <div className="slider-group">
-                    <label>
-                      Жени: {femaleParticipantsMin} - {femaleParticipantsMax}
-                    </label>
-                    <div className="range-inputs">
-                      <input
-                        type="range"
-                        min="0"
-                        max={participantsRange.maxFemale || 20}
-                        value={femaleParticipantsMin}
-                        onChange={(e) => {
-                          const val = Number(e.target.value)
-                          setFemaleParticipantsMin(Math.min(val, femaleParticipantsMax))
-                        }}
-                      />
-                      <input
-                        type="range"
-                        min="0"
-                        max={participantsRange.maxFemale || 20}
-                        value={femaleParticipantsMax}
-                        onChange={(e) => {
-                          const val = Number(e.target.value)
-                          setFemaleParticipantsMax(Math.max(val, femaleParticipantsMin))
-                        }}
-                      />
-                    </div>
-                    <div className="range-values">
-                      <input
-                        type="number"
-                        min="0"
-                        max={participantsRange.maxFemale || 20}
-                        value={femaleParticipantsMin}
-                        onChange={(e) => {
-                          const val = Math.max(0, Math.min(Number(e.target.value), femaleParticipantsMax))
-                          setFemaleParticipantsMin(val)
-                        }}
-                        style={{ width: '60px' }}
-                      />
-                      <span>-</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max={participantsRange.maxFemale || 20}
-                        value={femaleParticipantsMax}
-                        onChange={(e) => {
-                          const val = Math.min(participantsRange.maxFemale || 20, Math.max(Number(e.target.value), femaleParticipantsMin))
-                          setFemaleParticipantsMax(val)
-                        }}
-                        style={{ width: '60px' }}
-                      />
-                    </div>
-                  </div>
+                    <select
+                      value={selectedGenre}
+                      onChange={(e) => setSelectedGenre(e.target.value)}
+                    >
+                      <option value="all">Всички жанрове</option>
+                      {genres.map((genre) => (
+                        <option key={genre} value={genre}>
+                          {genre}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
               </div>
@@ -451,27 +358,76 @@ const Plays = () => {
               <div className="filter-group">
                 <button
                   className="filter-label"
-                  onClick={() => toggleFilter('genre')}
+                  onClick={() => toggleFilter('cast')}
                   type="button"
                 >
-                  <span>ЖАНР</span>
+                  <span>ДЕЙСТВАЩИ ЛИЦА</span>
                   <span className="filter-toggle">
-                    {expandedFilters.genre ? '−' : '+'}
+                    {expandedFilters.cast ? '−' : '+'}
                   </span>
                 </button>
-                {expandedFilters.genre && (
+                {expandedFilters.cast && (
                   <div className="filter-content">
-                    <select
-                      value={selectedGenre}
-                      onChange={(e) => setSelectedGenre(e.target.value)}
-                    >
-                      <option value="all">Всички жанрове</option>
-                      {genres.map((genre) => (
-                        <option key={genre} value={genre}>
-                          {genre}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="slider-group">
+                    <label>
+                      Мъже:
+                    </label>
+                    <div className="range-values">
+                      <input
+                        type="number"
+                        min="0"
+                        max={participantsRange.maxMale || 20}
+                        value={maleParticipantsMin}
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(Number(e.target.value), maleParticipantsMax))
+                          setMaleParticipantsMin(val)
+                        }}
+                        style={{ width: '60px' }}
+                      />
+                      <span>-</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={participantsRange.maxMale || 20}
+                        value={maleParticipantsMax}
+                        onChange={(e) => {
+                          const val = Math.min(participantsRange.maxMale || 20, Math.max(Number(e.target.value), maleParticipantsMin))
+                          setMaleParticipantsMax(val)
+                        }}
+                        style={{ width: '60px' }}
+                      />
+                    </div>
+                  </div>
+                  <div className="slider-group">
+                    <label>
+                      Жени:
+                    </label>
+                    <div className="range-values">
+                      <input
+                        type="number"
+                        min="0"
+                        max={participantsRange.maxFemale || 20}
+                        value={femaleParticipantsMin}
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(Number(e.target.value), femaleParticipantsMax))
+                          setFemaleParticipantsMin(val)
+                        }}
+                        style={{ width: '60px' }}
+                      />
+                      <span>-</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={participantsRange.maxFemale || 20}
+                        value={femaleParticipantsMax}
+                        onChange={(e) => {
+                          const val = Math.min(participantsRange.maxFemale || 20, Math.max(Number(e.target.value), femaleParticipantsMin))
+                          setFemaleParticipantsMax(val)
+                        }}
+                        style={{ width: '60px' }}
+                      />
+                    </div>
+                  </div>
                   </div>
                 )}
               </div>
@@ -499,44 +455,6 @@ const Plays = () => {
                         </option>
                       ))}
                     </select>
-                  </div>
-                )}
-              </div>
-              <div className="filter-group">
-                <button
-                  className="filter-label"
-                  onClick={() => toggleFilter('duration')}
-                  type="button"
-                >
-                  <span>ПРОДЪЛЖИТЕЛНОСТ</span>
-                  <span className="filter-toggle">
-                    {expandedFilters.duration ? '−' : '+'}
-                  </span>
-                </button>
-                {expandedFilters.duration && (
-                  <div className="filter-content">
-                  <div className="range-inputs">
-                    <input
-                      type="number"
-                      placeholder="От (мин)"
-                      value={durationMin}
-                      onChange={(e) =>
-                        setDurationMin(e.target.value === '' ? '' : Number(e.target.value))
-                      }
-                      min={durations.min}
-                      max={durations.max}
-                    />
-                    <input
-                      type="number"
-                      placeholder="До (мин)"
-                      value={durationMax}
-                      onChange={(e) =>
-                        setDurationMax(e.target.value === '' ? '' : Number(e.target.value))
-                      }
-                      min={durations.min}
-                      max={durations.max}
-                    />
-                  </div>
                   </div>
                 )}
               </div>

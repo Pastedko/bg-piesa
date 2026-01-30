@@ -17,6 +17,9 @@ const PlayCard = ({ play }: Props) => (
           'Неизвестен'
         )}
       </p>
+      <p className="card__meta">
+        {play.male_participants ?? 0}м. {play.female_participants ?? 0}ж.
+      </p>
       <p>{play.description.slice(0, 140)}...</p>
       <div className="card__actions">
         <Link to={`/plays/${play.id}`} className="btn btn--ghost">
