@@ -18,6 +18,21 @@ def column_exists(table_name: str, column_name: str) -> bool:
         return False
 
 
+def drop_column_if_exists(table_name: str, column_name: str) -> bool:
+    """Drop a column from a table if it exists. Returns True if column was dropped."""
+    if not column_exists(table_name, column_name):
+        return False
+    try:
+        with Session(engine) as session:
+            session.exec(text(f"ALTER TABLE {table_name} DROP COLUMN {column_name}"))
+            session.commit()
+            print(f"Dropped '{column_name}' column from {table_name} table")
+            return True
+    except Exception as e:
+        print(f"Error dropping column {column_name} from {table_name}: {e}")
+        raise
+
+
 def add_column_if_not_exists(table_name: str, column_name: str, column_type: str) -> bool:
     """Add a column to a table if it doesn't exist. Returns True if column was added."""
     if column_exists(table_name, column_name):
@@ -50,7 +65,6 @@ def migrate_play_table() -> None:
         
         # Add new columns if they don't exist
         add_column_if_not_exists("play", "theme", "VARCHAR")
-        add_column_if_not_exists("play", "duration", "INTEGER")
         add_column_if_not_exists("play", "male_participants", "INTEGER")
         add_column_if_not_exists("play", "female_participants", "INTEGER")
     except Exception as e:
@@ -58,6 +72,17 @@ def migrate_play_table() -> None:
         if "does not exist" not in str(e).lower() and "relation" not in str(e).lower():
             print(f"Migration error (non-critical): {e}")
         # Silently continue if table doesn't exist - it will be created by init_db
+
+
+def migrate_drop_duration() -> None:
+    """Drop duration column from play table if it exists."""
+    try:
+        if not column_exists("play", "id"):
+            return
+        drop_column_if_exists("play", "duration")
+    except Exception as e:
+        if "does not exist" not in str(e).lower() and "relation" not in str(e).lower():
+            print(f"Migration error dropping duration (non-critical): {e}")
 
 
 def migrate_play_image_captions() -> None:
@@ -107,5 +132,6 @@ def migrate_bilingual() -> None:
 def run_migrations() -> None:
     """Run all pending migrations."""
     migrate_play_table()
+    migrate_drop_duration()
     migrate_play_image_captions()
     migrate_bilingual()

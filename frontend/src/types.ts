@@ -24,7 +24,6 @@ export type Play = {
   year?: number | null
   genre?: string | null
   theme?: string | null
-  duration?: number | null
   male_participants?: number | null
   female_participants?: number | null
   author_id: number

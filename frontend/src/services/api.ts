@@ -50,8 +50,6 @@ export const api = {
     theme?: string
     yearMin?: number
     yearMax?: number
-    durationMin?: number
-    durationMax?: number
     maleParticipantsMin?: number
     maleParticipantsMax?: number
     femaleParticipantsMin?: number
@@ -64,8 +62,6 @@ export const api = {
     if (filters?.theme) params.set('theme', filters.theme)
     if (filters?.yearMin !== undefined) params.set('year_min', String(filters.yearMin))
     if (filters?.yearMax !== undefined) params.set('year_max', String(filters.yearMax))
-    if (filters?.durationMin !== undefined) params.set('duration_min', String(filters.durationMin))
-    if (filters?.durationMax !== undefined) params.set('duration_max', String(filters.durationMax))
     if (filters?.maleParticipantsMin !== undefined) params.set('male_participants_min', String(filters.maleParticipantsMin))
     if (filters?.maleParticipantsMax !== undefined) params.set('male_participants_max', String(filters.maleParticipantsMax))
     if (filters?.femaleParticipantsMin !== undefined) params.set('female_participants_min', String(filters.femaleParticipantsMin))

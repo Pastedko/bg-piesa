@@ -35,7 +35,6 @@ class Play(SQLModel, table=True):
     year: Optional[int] = Field(default=None)
     genre: Optional[str] = Field(default=None)
     theme: Optional[str] = Field(default=None)
-    duration: Optional[int] = Field(default=None, description="Duration in minutes")
     male_participants: Optional[int] = Field(default=None)
     female_participants: Optional[int] = Field(default=None)
     pdf_path: Optional[str] = Field(default=None)

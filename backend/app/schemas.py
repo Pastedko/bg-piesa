@@ -49,7 +49,6 @@ class PlayBase(BaseModel):
     year: Optional[int] = None
     genre: Optional[str] = None
     theme: Optional[str] = None
-    duration: Optional[int] = None
     male_participants: Optional[int] = None
     female_participants: Optional[int] = None
     author_id: int
@@ -68,7 +67,6 @@ class PlayUpdate(BaseModel):
     year: Optional[int] = None
     genre: Optional[str] = None
     theme: Optional[str] = None
-    duration: Optional[int] = None
     male_participants: Optional[int] = None
     female_participants: Optional[int] = None
     author_id: Optional[int] = None

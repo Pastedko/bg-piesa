@@ -19,8 +19,6 @@ const Plays = () => {
   const [selectedTheme, setSelectedTheme] = useState<string>('all')
   const [yearMin, setYearMin] = useState<number | ''>('')
   const [yearMax, setYearMax] = useState<number | ''>('')
-  const [durationMin, setDurationMin] = useState<number | ''>('')
-  const [durationMax, setDurationMax] = useState<number | ''>('')
   const [maleParticipantsMin, setMaleParticipantsMin] = useState<number>(0)
   const [maleParticipantsMax, setMaleParticipantsMax] = useState<number>(20)
   const [femaleParticipantsMin, setFemaleParticipantsMin] = useState<number>(0)
@@ -31,8 +29,6 @@ const Plays = () => {
   const [appliedTheme, setAppliedTheme] = useState<string>('all')
   const [appliedYearMin, setAppliedYearMin] = useState<number | ''>('')
   const [appliedYearMax, setAppliedYearMax] = useState<number | ''>('')
-  const [appliedDurationMin, setAppliedDurationMin] = useState<number | ''>('')
-  const [appliedDurationMax, setAppliedDurationMax] = useState<number | ''>('')
   const [appliedMaleParticipantsMin, setAppliedMaleParticipantsMin] = useState<number>(0)
   const [appliedMaleParticipantsMax, setAppliedMaleParticipantsMax] = useState<number>(20)
   const [appliedFemaleParticipantsMin, setAppliedFemaleParticipantsMin] = useState<number>(0)
@@ -44,7 +40,6 @@ const Plays = () => {
     year: false,
     genre: false,
     theme: false,
-    duration: false,
   })
 
   const toggleFilter = (filterKey: string) => {
@@ -79,8 +74,6 @@ const Plays = () => {
     setSelectedTheme('all')
     setYearMin('')
     setYearMax('')
-    setDurationMin('')
-    setDurationMax('')
     setMaleParticipantsMin(0)
     setMaleParticipantsMax(20)
     setFemaleParticipantsMin(0)
@@ -90,8 +83,6 @@ const Plays = () => {
     setAppliedTheme('all')
     setAppliedYearMin('')
     setAppliedYearMax('')
-    setAppliedDurationMin('')
-    setAppliedDurationMax('')
     setAppliedMaleParticipantsMin(0)
     setAppliedMaleParticipantsMax(20)
     setAppliedFemaleParticipantsMin(0)
@@ -163,8 +154,6 @@ const Plays = () => {
       if (selectedTheme !== 'all') filters.theme = selectedTheme
       if (yearMin !== '') filters.yearMin = Number(yearMin)
       if (yearMax !== '') filters.yearMax = Number(yearMax)
-      if (durationMin !== '') filters.durationMin = Number(durationMin)
-      if (durationMax !== '') filters.durationMax = Number(durationMax)
       if (maleParticipantsMin > 0) filters.maleParticipantsMin = maleParticipantsMin
       if (maleParticipantsMax < (participantsRange.maxMale || 20))
         filters.maleParticipantsMax = maleParticipantsMax
@@ -181,8 +170,6 @@ const Plays = () => {
       setAppliedTheme(selectedTheme)
       setAppliedYearMin(yearMin)
       setAppliedYearMax(yearMax)
-      setAppliedDurationMin(durationMin)
-      setAppliedDurationMax(durationMax)
       setAppliedMaleParticipantsMin(maleParticipantsMin)
       setAppliedMaleParticipantsMax(maleParticipantsMax)
       setAppliedFemaleParticipantsMin(femaleParticipantsMin)
@@ -205,8 +192,6 @@ const Plays = () => {
         if (appliedTheme !== 'all') filters.theme = appliedTheme
         if (appliedYearMin !== '') filters.yearMin = Number(appliedYearMin)
         if (appliedYearMax !== '') filters.yearMax = Number(appliedYearMax)
-        if (appliedDurationMin !== '') filters.durationMin = Number(appliedDurationMin)
-        if (appliedDurationMax !== '') filters.durationMax = Number(appliedDurationMax)
         if (appliedMaleParticipantsMin > 0) filters.maleParticipantsMin = appliedMaleParticipantsMin
         if (appliedMaleParticipantsMax < (participantsRange.maxMale || 20))
           filters.maleParticipantsMax = appliedMaleParticipantsMax
@@ -224,7 +209,7 @@ const Plays = () => {
       }
     }
     load()
-  }, [search, appliedGenre, appliedTheme, appliedYearMin, appliedYearMax, appliedDurationMin, appliedDurationMax, appliedMaleParticipantsMin, appliedMaleParticipantsMax, appliedFemaleParticipantsMin, appliedFemaleParticipantsMax, participantsRange, t])
+  }, [search, appliedGenre, appliedTheme, appliedYearMin, appliedYearMax, appliedMaleParticipantsMin, appliedMaleParticipantsMax, appliedFemaleParticipantsMin, appliedFemaleParticipantsMax, participantsRange, t])
 
   // Update max values when data loads
   useEffect(() => {

@@ -28,8 +28,6 @@ def list_plays(
     theme: Optional[str] = Query(default=None, description="Филтър по тема"),
     year_min: Optional[int] = Query(default=None, description="Минимална година"),
     year_max: Optional[int] = Query(default=None, description="Максимална година"),
-    duration_min: Optional[int] = Query(default=None, description="Минимална продължителност (минути)"),
-    duration_max: Optional[int] = Query(default=None, description="Максимална продължителност (минути)"),
     male_participants_min: Optional[int] = Query(default=None, description="Минимален брой мъже"),
     male_participants_max: Optional[int] = Query(default=None, description="Максимален брой мъже"),
     female_participants_min: Optional[int] = Query(default=None, description="Минимален брой жени"),
@@ -55,10 +53,6 @@ def list_plays(
         query = query.where(Play.year >= year_min)
     if year_max is not None:
         query = query.where(Play.year <= year_max)
-    if duration_min is not None:
-        query = query.where(Play.duration >= duration_min)
-    if duration_max is not None:
-        query = query.where(Play.duration <= duration_max)
     if male_participants_min is not None:
         query = query.where(Play.male_participants >= male_participants_min)
     if male_participants_max is not None:

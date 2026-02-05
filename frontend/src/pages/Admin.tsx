@@ -23,7 +23,6 @@ type PlayFormState = {
   year: string
   genre: string
   theme: string
-  duration: string
   male_participants: string
   female_participants: string
   author_id: string
@@ -45,7 +44,6 @@ const initialPlayForm: PlayFormState = {
   year: '',
   genre: '',
   theme: '',
-  duration: '',
   male_participants: '',
   female_participants: '',
   author_id: '',
@@ -178,7 +176,6 @@ const Admin = () => {
       genre: playForm.genre || undefined,
       theme: playForm.theme || undefined,
       year: playForm.year ? Number(playForm.year) : undefined,
-      duration: playForm.duration ? Number(playForm.duration) : undefined,
       male_participants: playForm.male_participants ? Number(playForm.male_participants) : undefined,
       female_participants: playForm.female_participants ? Number(playForm.female_participants) : undefined,
       author_id: Number(playForm.author_id),
@@ -258,7 +255,6 @@ const Admin = () => {
         genre: detail.genre ?? '',
         theme: detail.theme ?? '',
         year: detail.year ? String(detail.year) : '',
-        duration: detail.duration ? String(detail.duration) : '',
         male_participants: detail.male_participants ? String(detail.male_participants) : '',
         female_participants: detail.female_participants ? String(detail.female_participants) : '',
         author_id: String(detail.author_id),
@@ -524,17 +520,6 @@ const Admin = () => {
                 </label>
               </div>
               <div className="form__inline">
-                <label>
-                  {t('plays.duration')}
-                  <input
-                    value={playForm.duration}
-                    onChange={(event) =>
-                      setPlayForm({ ...playForm, duration: event.target.value })
-                    }
-                    type="number"
-                    min="0"
-                  />
-                </label>
                 <label>
                   {t('plays.maleParticipants')}
                   <input
