@@ -1,10 +1,11 @@
 """Application configuration utilities."""
 
+import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import List, Literal, Union
 
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings, Field, validator
 
 
 class Settings(BaseSettings):
@@ -12,7 +13,21 @@ class Settings(BaseSettings):
 
     app_name: str = "bgpiesa"
     environment: Literal["development", "production", "test"] = "development"
-    backend_cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    backend_cors_origins: List[str] = Field(default_factory=lambda: ["*"], env="BACKEND_CORS_ORIGINS")
+
+    @validator("backend_cors_origins", pre=True)
+    def parse_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
+        if v is None:
+            return ["*"]
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                return parsed if isinstance(parsed, list) else ["*"]
+            except json.JSONDecodeError:
+                return ["*"]
+        return ["*"]
     database_url: str = Field(
         default="postgresql+psycopg2://postgres:postgres@db:5432/bgpiesa"
     )
