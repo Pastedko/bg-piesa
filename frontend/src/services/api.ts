@@ -3,6 +3,7 @@ import type {
   AuthorDetail,
   Play,
   PlayDetail,
+  PlayImage,
   TokenResponse,
 } from '../types'
 
@@ -28,7 +29,7 @@ async function request<T>(
 
   if (!response.ok) {
     const errorText = await response.text()
-    throw new Error(errorText || 'Възникна грешка при заявката.')
+    throw new Error(errorText || 'Request failed.')
   }
   if (response.status === 204) {
     return {} as T
@@ -134,20 +135,41 @@ export const api = {
       return res.json() as Promise<Play>
     })
   },
-  uploadPlayImages: (id: number, files: File[], token: string) => {
+  uploadPlayImage: (
+    id: number,
+    file: File,
+    token: string,
+    captions?: { caption_bg?: string; caption_en?: string }
+  ) => {
     const data = new FormData()
-    files.forEach((file) => data.append('files', file))
-    return fetch(`${API_BASE}/api/admin/plays/${id}/upload-images`, {
+    data.append('file', file)
+    if (captions?.caption_bg) data.append('caption_bg', captions.caption_bg)
+    if (captions?.caption_en) data.append('caption_en', captions.caption_en)
+    return fetch(`${API_BASE}/api/admin/plays/${id}/upload-image`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: data,
-    }).then((res) => {
+    }).then(async (res) => {
       if (!res.ok) {
-        throw new Error('Качването на изображения е неуспешно.')
+        const text = await res.text()
+        throw new Error(text || 'Качването на изображения е неуспешно.')
       }
       return res.json() as Promise<PlayDetail>
     })
   },
+  deletePlayImage: (playId: number, imageId: number, token: string) =>
+    request<void>(`/api/admin/plays/${playId}/images/${imageId}`, { method: 'DELETE' }, token),
+  updatePlayImageCaption: (
+    playId: number,
+    imageId: number,
+    payload: { caption_bg?: string; caption_en?: string },
+    token: string
+  ) =>
+    request<PlayImage>(
+      `/api/admin/plays/${playId}/images/${imageId}`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+      token
+    ),
   downloadPdfUrl: (id: number) => `${API_BASE}/api/plays/${id}/download-pdf`,
 }
 

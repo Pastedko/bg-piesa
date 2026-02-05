@@ -60,6 +60,52 @@ def migrate_play_table() -> None:
         # Silently continue if table doesn't exist - it will be created by init_db
 
 
+def migrate_play_image_captions() -> None:
+    """Add caption_bg and caption_en to playimage table."""
+    try:
+        if not column_exists("playimage", "id"):
+            return
+        add_column_if_not_exists("playimage", "caption_bg", "VARCHAR")
+        add_column_if_not_exists("playimage", "caption_en", "VARCHAR")
+    except Exception as e:
+        if "does not exist" not in str(e).lower() and "relation" not in str(e).lower():
+            print(f"Migration error playimage captions (non-critical): {e}")
+
+
+def migrate_bilingual() -> None:
+    """Add bilingual columns and backfill from existing title/description/biography."""
+    try:
+        with Session(engine) as session:
+            # Author: add biography_bg, biography_en and backfill from biography
+            if column_exists("author", "biography") and not column_exists("author", "biography_bg"):
+                for stmt in [
+                    "ALTER TABLE author ADD COLUMN biography_bg VARCHAR",
+                    "ALTER TABLE author ADD COLUMN biography_en VARCHAR",
+                ]:
+                    session.exec(text(stmt))
+                session.exec(text("UPDATE author SET biography_bg = biography"))
+                session.commit()
+                print("Migrated author to biography_bg/biography_en")
+
+            # Play: add title_bg, title_en, description_bg, description_en and backfill
+            if column_exists("play", "title") and not column_exists("play", "title_bg"):
+                for stmt in [
+                    "ALTER TABLE play ADD COLUMN title_bg VARCHAR",
+                    "ALTER TABLE play ADD COLUMN title_en VARCHAR",
+                    "ALTER TABLE play ADD COLUMN description_bg VARCHAR",
+                    "ALTER TABLE play ADD COLUMN description_en VARCHAR",
+                ]:
+                    session.exec(text(stmt))
+                session.exec(text("UPDATE play SET title_bg = title, description_bg = description"))
+                session.commit()
+                print("Migrated play to title_bg/title_en and description_bg/description_en")
+    except Exception as e:
+        if "does not exist" not in str(e).lower() and "relation" not in str(e).lower():
+            print(f"Bilingual migration error (non-critical): {e}")
+
+
 def run_migrations() -> None:
     """Run all pending migrations."""
     migrate_play_table()
+    migrate_play_image_captions()
+    migrate_bilingual()

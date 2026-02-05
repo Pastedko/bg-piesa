@@ -3,7 +3,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
 
-CMD ["npm", "run", "dev"]
+# Install at runtime so the mounted node_modules volume gets correct linux-musl binaries.
+# (Host node_modules from Windows would otherwise be used and miss @rollup/rollup-linux-x64-musl.)
+CMD ["sh", "-c", "npm install && npm run dev"]
 

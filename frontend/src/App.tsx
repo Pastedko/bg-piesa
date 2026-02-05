@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Route, Routes } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import About from './pages/About'
@@ -10,6 +11,7 @@ import Plays from './pages/Plays'
 import './App.css'
 
 function App() {
+  const { t } = useTranslation()
   return (
     <div className="app-shell">
       <Navbar />
@@ -25,8 +27,8 @@ function App() {
         </Routes>
       </main>
       <footer className="footer">
-        <p>bgpiesa · Български театър онлайн · {new Date().getFullYear()}</p>
-        <p>Свържи се с нас: contact@bgpiesa.bg</p>
+        <p>bgpiesa · {t('footer.subtitle')} · {new Date().getFullYear()}</p>
+        <p>{t('footer.contact')}</p>
       </footer>
     </div>
   )

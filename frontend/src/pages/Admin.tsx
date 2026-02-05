@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import ErrorMessage from '../components/ErrorMessage'
 import Loader from '../components/Loader'
 import { useAdmin } from '../context/AdminContext'
-import { api } from '../services/api'
-import type { Author, Play } from '../types'
+import { api, API_BASE } from '../services/api'
+import type { Author, Play, PlayDetail } from '../types'
+import { getLocalized } from '../types'
 
 type AuthorFormState = {
   name: string
-  biography: string
+  biography_bg: string
+  biography_en: string
   photo_url: string
 }
 
 type PlayFormState = {
-  title: string
-  description: string
+  title_bg: string
+  title_en: string
+  description_bg: string
+  description_en: string
   year: string
   genre: string
   theme: string
@@ -27,13 +32,16 @@ type PlayFormState = {
 
 const initialAuthorForm: AuthorFormState = {
   name: '',
-  biography: '',
+  biography_bg: '',
+  biography_en: '',
   photo_url: '',
 }
 
 const initialPlayForm: PlayFormState = {
-  title: '',
-  description: '',
+  title_bg: '',
+  title_en: '',
+  description_bg: '',
+  description_en: '',
   year: '',
   genre: '',
   theme: '',
@@ -45,6 +53,8 @@ const initialPlayForm: PlayFormState = {
 }
 
 const Admin = () => {
+  const { t, i18n } = useTranslation()
+  const lang = i18n.language
   const { isAuthenticated, login, logout, token } = useAdmin()
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState<string | null>(null)
@@ -60,8 +70,15 @@ const Admin = () => {
 
   const [playForm, setPlayForm] = useState<PlayFormState>(initialPlayForm)
   const [playPdfFile, setPlayPdfFile] = useState<File | null>(null)
-  const [playImageFiles, setPlayImageFiles] = useState<FileList | null>(null)
+  const [playImageItems, setPlayImageItems] = useState<
+    Array<{ file: File | null; caption_bg: string; caption_en: string }>
+  >([])
   const [editingPlayId, setEditingPlayId] = useState<number | null>(null)
+  const [editingPlayDetail, setEditingPlayDetail] = useState<PlayDetail | null>(null)
+  const [existingImagesToDelete, setExistingImagesToDelete] = useState<number[]>([])
+  const [existingImageCaptions, setExistingImageCaptions] = useState<
+    Record<number, { caption_bg: string; caption_en: string }>
+  >({})
 
   const refreshData = async () => {
     if (!token) return
@@ -75,7 +92,7 @@ const Admin = () => {
       setAuthors(authorsData)
       setPlays(playsData)
     } catch {
-      setError('Неуспешно зареждане на данни от сървъра.')
+      setError(t('admin.loadError'))
     } finally {
       setLoading(false)
     }
@@ -95,7 +112,7 @@ const Admin = () => {
       setPassword('')
       setLoginError(null)
     } catch {
-      setLoginError('Невалидна парола. Опитайте отново.')
+      setLoginError(t('admin.loginError'))
     }
   }
 
@@ -105,7 +122,8 @@ const Admin = () => {
     try {
       const payload = {
         name: authorForm.name,
-        biography: authorForm.biography,
+        biography_bg: authorForm.biography_bg,
+        biography_en: authorForm.biography_en || undefined,
         photo_url: authorForm.photo_url || undefined,
       }
       const result = editingAuthorId
@@ -121,7 +139,7 @@ const Admin = () => {
       setEditingAuthorId(null)
       refreshData()
     } catch {
-      setError('Възникна грешка при запазване на автора.')
+      setError(t('admin.saveAuthorError'))
     }
   }
 
@@ -129,21 +147,20 @@ const Admin = () => {
     setEditingAuthorId(author.id)
     setAuthorForm({
       name: author.name,
-      biography: author.biography,
+      biography_bg: author.biography_bg,
+      biography_en: author.biography_en ?? '',
       photo_url: author.photo_url ?? '',
     })
   }
 
   const handleAuthorDelete = async (id: number) => {
     if (!token) return
-    if (!confirm('Сигурни ли сте, че искате да изтриете автора?')) return
+    if (!confirm(t('admin.confirmDeleteAuthor'))) return
     try {
       await api.deleteAuthor(id, token)
       refreshData()
-    } catch (err) {
-      setError(
-        'Авторът не може да бъде изтрит. Уверете се, че няма свързани пиеси.'
-      )
+    } catch {
+      setError(t('admin.deleteAuthorError'))
     }
   }
 
@@ -153,9 +170,11 @@ const Admin = () => {
     const image_urls = playForm.imageUrls
       ? playForm.imageUrls.split('\n').map((url) => url.trim()).filter(Boolean)
       : undefined
-    const payload = {
-      title: playForm.title,
-      description: playForm.description,
+    const payload: Parameters<typeof api.updatePlay>[1] = {
+      title_bg: playForm.title_bg,
+      title_en: playForm.title_en || undefined,
+      description_bg: playForm.description_bg,
+      description_en: playForm.description_en || undefined,
       genre: playForm.genre || undefined,
       theme: playForm.theme || undefined,
       year: playForm.year ? Number(playForm.year) : undefined,
@@ -163,58 +182,101 @@ const Admin = () => {
       male_participants: playForm.male_participants ? Number(playForm.male_participants) : undefined,
       female_participants: playForm.female_participants ? Number(playForm.female_participants) : undefined,
       author_id: Number(playForm.author_id),
-      image_urls,
     }
+    if (!editingPlayId && image_urls?.length) payload.image_urls = image_urls
     try {
       const result = editingPlayId
         ? await api.updatePlay(editingPlayId, payload, token)
         : await api.createPlay(payload, token)
 
+      if (editingPlayId) {
+        for (const imageId of existingImagesToDelete) {
+          await api.deletePlayImage(result.id, imageId, token)
+        }
+        for (const img of editingPlayDetail?.images ?? []) {
+          if (existingImagesToDelete.includes(img.id)) continue
+          const current = existingImageCaptions[img.id]
+          if (!current) continue
+          const captionBg = current.caption_bg.trim() || undefined
+          const captionEn = current.caption_en.trim() || undefined
+          const origBg = (img.caption_bg ?? '').trim() || undefined
+          const origEn = (img.caption_en ?? '').trim() || undefined
+          if (captionBg !== origBg || captionEn !== origEn) {
+            await api.updatePlayImageCaption(result.id, img.id, {
+              caption_bg: captionBg,
+              caption_en: captionEn,
+            }, token)
+          }
+        }
+      }
       if (playPdfFile) {
         await api.uploadPlayPdf(result.id, playPdfFile, token)
       }
-      if (playImageFiles && playImageFiles.length > 0) {
-        await api.uploadPlayImages(
-          result.id,
-          Array.from(playImageFiles),
-          token
-        )
+      for (const item of playImageItems) {
+        if (item.file) {
+          await api.uploadPlayImage(result.id, item.file, token, {
+            caption_bg: item.caption_bg.trim() || undefined,
+            caption_en: item.caption_en.trim() || undefined,
+          })
+        }
       }
 
       setPlayForm(initialPlayForm)
       setPlayPdfFile(null)
-      setPlayImageFiles(null)
+      setPlayImageItems([])
       setEditingPlayId(null)
+      setEditingPlayDetail(null)
+      setExistingImagesToDelete([])
+      setExistingImageCaptions({})
       refreshData()
     } catch {
-      setError('Възникна грешка при запазване на пиесата.')
+      setError(t('admin.savePlayError'))
     }
   }
 
-  const handlePlayEdit = (play: Play) => {
+  const handlePlayEdit = async (play: Play) => {
     setEditingPlayId(play.id)
-    setPlayForm({
-      title: play.title,
-      description: play.description,
-      genre: play.genre ?? '',
-      theme: play.theme ?? '',
-      year: play.year ? String(play.year) : '',
-      duration: play.duration ? String(play.duration) : '',
-      male_participants: play.male_participants ? String(play.male_participants) : '',
-      female_participants: play.female_participants ? String(play.female_participants) : '',
-      author_id: String(play.author_id),
-      imageUrls: play.images?.map((img) => img.image_url).join('\n') ?? '',
-    })
+    setPlayImageItems([])
+    setExistingImagesToDelete([])
+    setEditingPlayDetail(null)
+    try {
+      const detail = await api.getPlay(String(play.id))
+      setEditingPlayDetail(detail)
+      const captions: Record<number, { caption_bg: string; caption_en: string }> = {}
+      for (const img of detail.images ?? []) {
+        captions[img.id] = {
+          caption_bg: img.caption_bg ?? '',
+          caption_en: img.caption_en ?? '',
+        }
+      }
+      setExistingImageCaptions(captions)
+      setPlayForm({
+        title_bg: detail.title_bg,
+        title_en: detail.title_en ?? '',
+        description_bg: detail.description_bg,
+        description_en: detail.description_en ?? '',
+        genre: detail.genre ?? '',
+        theme: detail.theme ?? '',
+        year: detail.year ? String(detail.year) : '',
+        duration: detail.duration ? String(detail.duration) : '',
+        male_participants: detail.male_participants ? String(detail.male_participants) : '',
+        female_participants: detail.female_participants ? String(detail.female_participants) : '',
+        author_id: String(detail.author_id),
+        imageUrls: detail.images?.map((img) => img.image_url).join('\n') ?? '',
+      })
+    } catch {
+      setError(t('admin.loadError'))
+    }
   }
 
   const handlePlayDelete = async (id: number) => {
     if (!token) return
-    if (!confirm('Искате ли да изтриете тази пиеса?')) return
+    if (!confirm(t('admin.confirmDeletePlay'))) return
     try {
       await api.deletePlay(id, token)
       refreshData()
     } catch {
-      setError('Пиесата не може да бъде изтрита в момента.')
+      setError(t('admin.deletePlayError'))
     }
   }
 
@@ -222,10 +284,10 @@ const Admin = () => {
     return (
       <div className="page page--narrow">
         <section className="section">
-          <h1>Администраторски вход</h1>
+          <h1>{t('admin.loginTitle')}</h1>
           <form className="form" onSubmit={handleLogin}>
             <label>
-              Парола
+              {t('admin.password')}
               <input
                 type="password"
                 value={password}
@@ -235,7 +297,7 @@ const Admin = () => {
             </label>
             {loginError && <ErrorMessage message={loginError} />}
             <button type="submit" className="btn">
-              Вход
+              {t('admin.login')}
             </button>
           </form>
         </section>
@@ -247,10 +309,10 @@ const Admin = () => {
     <div className="page">
       <section className="section">
         <div className="section__header">
-          <h1>Админ панел</h1>
+          <h1>{t('admin.panelTitle')}</h1>
           <div className="section__actions">
             <button className="btn btn--ghost" onClick={logout}>
-              Изход
+              {t('admin.logout')}
             </button>
           </div>
         </div>
@@ -259,13 +321,13 @@ const Admin = () => {
             className={activeTab === 'authors' ? 'tab tab--active' : 'tab'}
             onClick={() => setActiveTab('authors')}
           >
-            Управление на автори
+            {t('admin.tabAuthors')}
           </button>
           <button
             className={activeTab === 'plays' ? 'tab tab--active' : 'tab'}
             onClick={() => setActiveTab('plays')}
           >
-            Управление на пиеси
+            {t('admin.tabPlays')}
           </button>
         </div>
         {error && <ErrorMessage message={error} />}
@@ -274,9 +336,9 @@ const Admin = () => {
         ) : activeTab === 'authors' ? (
           <div className="admin-grid">
             <form className="form" onSubmit={handleAuthorSubmit}>
-              <h2>{editingAuthorId ? 'Редакция на автор' : 'Нов автор'}</h2>
+              <h2>{editingAuthorId ? t('admin.authorFormEdit') : t('admin.authorFormNew')}</h2>
               <label>
-                Име
+                {t('admin.name')}
                 <input
                   value={authorForm.name}
                   onChange={(event) =>
@@ -286,13 +348,13 @@ const Admin = () => {
                 />
               </label>
               <label>
-                Биография
+                {t('admin.biographyBg')}
                 <textarea
-                  value={authorForm.biography}
+                  value={authorForm.biography_bg}
                   onChange={(event) =>
                     setAuthorForm({
                       ...authorForm,
-                      biography: event.target.value,
+                      biography_bg: event.target.value,
                     })
                   }
                   rows={5}
@@ -300,7 +362,20 @@ const Admin = () => {
                 />
               </label>
               <label>
-                Снимка (URL)
+                {t('admin.biographyEn')}
+                <textarea
+                  value={authorForm.biography_en}
+                  onChange={(event) =>
+                    setAuthorForm({
+                      ...authorForm,
+                      biography_en: event.target.value,
+                    })
+                  }
+                  rows={5}
+                />
+              </label>
+              <label>
+                {t('admin.photoUrl')}
                 <input
                   value={authorForm.photo_url}
                   onChange={(event) =>
@@ -312,7 +387,7 @@ const Admin = () => {
                 />
               </label>
               <label>
-                Или качи снимка
+                {t('admin.uploadPhoto')}
                 <input
                   type="file"
                   accept="image/*"
@@ -322,29 +397,29 @@ const Admin = () => {
                 />
               </label>
               <button className="btn" type="submit">
-                {editingAuthorId ? 'Запази промените' : 'Създай автор'}
+                {editingAuthorId ? t('admin.saveChanges') : t('admin.saveAuthor')}
               </button>
             </form>
             <div className="list list--admin">
-              <h3>Съществуващи автори</h3>
+              <h3>{t('admin.existingAuthors')}</h3>
               {authors.map((author) => (
                 <div key={author.id} className="list__item">
                   <div>
                     <strong>{author.name}</strong>
-                    <p>{author.biography.slice(0, 100)}...</p>
+                    <p>{getLocalized(author.biography_bg, author.biography_en, lang).slice(0, 100)}...</p>
                   </div>
                   <div className="list__actions">
                     <button
                       className="btn btn--ghost"
                       onClick={() => handleAuthorEdit(author)}
                     >
-                      Редактирай
+                      {t('admin.edit')}
                     </button>
                     <button
                       className="btn btn--danger"
                       onClick={() => handleAuthorDelete(author.id)}
                     >
-                      Изтрий
+                      {t('admin.delete')}
                     </button>
                   </div>
                 </div>
@@ -354,25 +429,34 @@ const Admin = () => {
         ) : (
           <div className="admin-grid">
             <form className="form" onSubmit={handlePlaySubmit}>
-              <h2>{editingPlayId ? 'Редакция на пиеса' : 'Нова пиеса'}</h2>
+              <h2>{editingPlayId ? t('admin.playFormEdit') : t('admin.playFormNew')}</h2>
               <label>
-                Заглавие
+                {t('admin.titleBg')}
                 <input
-                  value={playForm.title}
+                  value={playForm.title_bg}
                   onChange={(event) =>
-                    setPlayForm({ ...playForm, title: event.target.value })
+                    setPlayForm({ ...playForm, title_bg: event.target.value })
                   }
                   required
                 />
               </label>
               <label>
-                Описание
+                {t('admin.titleEn')}
+                <input
+                  value={playForm.title_en}
+                  onChange={(event) =>
+                    setPlayForm({ ...playForm, title_en: event.target.value })
+                  }
+                />
+              </label>
+              <label>
+                {t('admin.descriptionBg')}
                 <textarea
-                  value={playForm.description}
+                  value={playForm.description_bg}
                   onChange={(event) =>
                     setPlayForm({
                       ...playForm,
-                      description: event.target.value,
+                      description_bg: event.target.value,
                     })
                   }
                   rows={5}
@@ -380,7 +464,20 @@ const Admin = () => {
                 />
               </label>
               <label>
-                Автор
+                {t('admin.descriptionEn')}
+                <textarea
+                  value={playForm.description_en}
+                  onChange={(event) =>
+                    setPlayForm({
+                      ...playForm,
+                      description_en: event.target.value,
+                    })
+                  }
+                  rows={5}
+                />
+              </label>
+              <label>
+                {t('plays.author')}
                 <select
                   value={playForm.author_id}
                   onChange={(event) =>
@@ -388,7 +485,7 @@ const Admin = () => {
                   }
                   required
                 >
-                  <option value="">Избери автор...</option>
+                  <option value="">{t('admin.selectAuthor')}</option>
                   {authors.map((author) => (
                     <option key={author.id} value={author.id}>
                       {author.name}
@@ -398,7 +495,7 @@ const Admin = () => {
               </label>
               <div className="form__inline">
                 <label>
-                  Година
+                  {t('plays.year')}
                   <input
                     value={playForm.year}
                     onChange={(event) =>
@@ -408,7 +505,7 @@ const Admin = () => {
                   />
                 </label>
                 <label>
-                  Жанр
+                  {t('plays.genre')}
                   <input
                     value={playForm.genre}
                     onChange={(event) =>
@@ -417,7 +514,7 @@ const Admin = () => {
                   />
                 </label>
                 <label>
-                  Тема
+                  {t('plays.theme')}
                   <input
                     value={playForm.theme}
                     onChange={(event) =>
@@ -428,7 +525,7 @@ const Admin = () => {
               </div>
               <div className="form__inline">
                 <label>
-                  Продължителност (минути)
+                  {t('plays.duration')}
                   <input
                     value={playForm.duration}
                     onChange={(event) =>
@@ -439,7 +536,7 @@ const Admin = () => {
                   />
                 </label>
                 <label>
-                  Мъже участници
+                  {t('plays.maleParticipants')}
                   <input
                     value={playForm.male_participants}
                     onChange={(event) =>
@@ -450,7 +547,7 @@ const Admin = () => {
                   />
                 </label>
                 <label>
-                  Жени участници
+                  {t('plays.femaleParticipants')}
                   <input
                     value={playForm.female_participants}
                     onChange={(event) =>
@@ -462,17 +559,174 @@ const Admin = () => {
                 </label>
               </div>
               <label>
-                Изображения (URL, по едно на ред)
+                {t('plays.imagesUrl')}
                 <textarea
                   value={playForm.imageUrls}
                   onChange={(event) =>
                     setPlayForm({ ...playForm, imageUrls: event.target.value })
                   }
-                  rows={4}
+                  rows={2}
+                  placeholder="https://example.com/image1.jpg (one URL per line)"
                 />
               </label>
+              {editingPlayId && editingPlayDetail && (editingPlayDetail.images?.length ?? 0) > 0 && (
+                <div className="form__image-captions">
+                  <p className="form__hint">{t('admin.existingImages')}</p>
+                  {(editingPlayDetail.images ?? [])
+                    .filter((img) => !existingImagesToDelete.includes(img.id))
+                    .map((img) => {
+                      const url = img.image_url.startsWith('http')
+                        ? img.image_url
+                        : `${API_BASE}${img.image_url}`
+                      const captions = existingImageCaptions[img.id] ?? {
+                        caption_bg: img.caption_bg ?? '',
+                        caption_en: img.caption_en ?? '',
+                      }
+                      return (
+                        <div key={img.id} className="image-caption-row image-caption-row--existing">
+                          <div className="image-caption-row__preview">
+                            <img
+                              src={url}
+                              alt=""
+                              width={60}
+                              height={60}
+                              style={{ objectFit: 'cover', borderRadius: 4 }}
+                            />
+                          </div>
+                          <div className="image-caption-row__inputs">
+                            <input
+                              type="text"
+                              placeholder={t('admin.captionBg')}
+                              value={captions.caption_bg}
+                              onChange={(e) =>
+                                setExistingImageCaptions((prev) => ({
+                                  ...prev,
+                                  [img.id]: {
+                                    ...prev[img.id],
+                                    caption_bg: e.target.value,
+                                    caption_en: prev[img.id]?.caption_en ?? captions.caption_en,
+                                  },
+                                }))
+                              }
+                            />
+                            <input
+                              type="text"
+                              placeholder={t('admin.captionEn')}
+                              value={captions.caption_en}
+                              onChange={(e) =>
+                                setExistingImageCaptions((prev) => ({
+                                  ...prev,
+                                  [img.id]: {
+                                    ...prev[img.id],
+                                    caption_bg: prev[img.id]?.caption_bg ?? captions.caption_bg,
+                                    caption_en: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="btn btn--sm btn--danger"
+                              onClick={() =>
+                                setExistingImagesToDelete((prev) => [...prev, img.id])
+                              }
+                            >
+                              {t('admin.remove')}
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  {existingImagesToDelete.length > 0 && (
+                    <p className="form__hint form__hint--muted">
+                      {t('admin.imagesMarkedForRemoval', { count: existingImagesToDelete.length })}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="form__image-captions">
+                <p className="form__hint">{t('admin.addImageWithCaptionHint')}</p>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() =>
+                    setPlayImageItems((prev) => [...prev, { file: null as File | null, caption_bg: '', caption_en: '' }])
+                  }
+                >
+                  + {t('admin.addImageWithCaption')}
+                </button>
+                {playImageItems.map((item, idx) => (
+                  <div key={idx} className="image-caption-row">
+                    <div className="image-caption-row__preview">
+                      {item.file ? (
+                        <>
+                          <img
+                            src={URL.createObjectURL(item.file)}
+                            alt=""
+                            width={60}
+                            height={60}
+                            style={{ objectFit: 'cover', borderRadius: 4 }}
+                          />
+                          <span className="image-caption-row__name">{item.file.name}</span>
+                        </>
+                      ) : (
+                        <label className="image-caption-row__placeholder">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0]
+                              if (f)
+                                setPlayImageItems((prev) =>
+                                  prev.map((p, i) => (i === idx ? { ...p, file: f } : p))
+                                )
+                              e.target.value = ''
+                            }}
+                          />
+                          <span>{t('admin.chooseFile')}</span>
+                        </label>
+                      )}
+                    </div>
+                    <div className="image-caption-row__inputs">
+                      <input
+                        type="text"
+                        placeholder={t('admin.captionBg')}
+                        value={item.caption_bg}
+                        onChange={(e) => {
+                          setPlayImageItems((prev) =>
+                            prev.map((p, i) =>
+                              i === idx ? { ...p, caption_bg: e.target.value } : p
+                            )
+                          )
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder={t('admin.captionEn')}
+                        value={item.caption_en}
+                        onChange={(e) => {
+                          setPlayImageItems((prev) =>
+                            prev.map((p, i) =>
+                              i === idx ? { ...p, caption_en: e.target.value } : p
+                            )
+                          )
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() =>
+                          setPlayImageItems((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                      >
+                        {t('admin.remove')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
               <label>
-                Качи PDF сценарий
+                {t('plays.uploadPdf')}
                 <input
                   type="file"
                   accept="application/pdf"
@@ -481,39 +735,30 @@ const Admin = () => {
                   }
                 />
               </label>
-              <label>
-                Качи изображения
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(event) => setPlayImageFiles(event.target.files)}
-                />
-              </label>
               <button className="btn" type="submit">
-                {editingPlayId ? 'Запази промените' : 'Създай пиеса'}
+                {editingPlayId ? t('admin.saveChanges') : t('admin.savePlay')}
               </button>
             </form>
             <div className="list list--admin">
-              <h3>Съществуващи пиеси</h3>
+              <h3>{t('admin.existingPlays')}</h3>
               {plays.map((play) => (
                 <div key={play.id} className="list__item">
                   <div>
-                    <strong>{play.title}</strong>
-                    <p>{play.description.slice(0, 100)}...</p>
+                    <strong>{getLocalized(play.title_bg, play.title_en, lang)}</strong>
+                    <p>{getLocalized(play.description_bg, play.description_en, lang).slice(0, 100)}...</p>
                   </div>
                   <div className="list__actions">
                     <button
                       className="btn btn--ghost"
                       onClick={() => handlePlayEdit(play)}
                     >
-                      Редактирай
+                      {t('admin.edit')}
                     </button>
                     <button
                       className="btn btn--danger"
                       onClick={() => handlePlayDelete(play.id)}
                     >
-                      Изтрий
+                      {t('admin.delete')}
                     </button>
                   </div>
                 </div>
@@ -527,4 +772,3 @@ const Admin = () => {
 }
 
 export default Admin
-

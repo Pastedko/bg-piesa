@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import ErrorMessage from '../components/ErrorMessage'
 import Loader from '../components/Loader'
 import PlayCard from '../components/PlayCard'
@@ -7,6 +8,7 @@ import { api } from '../services/api'
 import type { Play } from '../types'
 
 const Plays = () => {
+  const { t } = useTranslation()
   const [plays, setPlays] = useState<Play[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -102,7 +104,7 @@ const Plays = () => {
       setPlays(data)
       setError(null)
     } catch {
-      setError('Неуспешно зареждане на пиеси.')
+      setError(t('plays.loadError'))
     } finally {
       setLoading(false)
     }
@@ -196,7 +198,7 @@ const Plays = () => {
       setAppliedFemaleParticipantsMin(femaleParticipantsMin)
       setAppliedFemaleParticipantsMax(femaleParticipantsMax)
     } catch {
-      setError('Неуспешно зареждане на пиеси.')
+      setError(t('plays.loadError'))
     } finally {
       setLoading(false)
     }
@@ -226,13 +228,13 @@ const Plays = () => {
         setPlays(data)
         setError(null)
       } catch {
-        setError('Неуспешно зареждане на пиеси.')
+        setError(t('plays.loadError'))
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [search, appliedGenre, appliedTheme, appliedYearMin, appliedYearMax, appliedDurationMin, appliedDurationMax, appliedMaleParticipantsMin, appliedMaleParticipantsMax, appliedFemaleParticipantsMin, appliedFemaleParticipantsMax, participantsRange])
+  }, [search, appliedGenre, appliedTheme, appliedYearMin, appliedYearMax, appliedDurationMin, appliedDurationMax, appliedMaleParticipantsMin, appliedMaleParticipantsMax, appliedFemaleParticipantsMin, appliedFemaleParticipantsMax, participantsRange, t])
 
   // Update max values when data loads
   useEffect(() => {
@@ -252,15 +254,15 @@ const Plays = () => {
       <section className="section">
         <div className="section__header">
           <div>
-            <p className="eyebrow">Дигитална библиотека</p>
-            <h1>Пиеси</h1>
+            <p className="eyebrow">{t('plays.eyebrow')}</p>
+            <h1>{t('plays.title')}</h1>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
             <SearchBar
-              label="Търсене на пиеса"
+              label={t('plays.searchLabel')}
               value={search}
               onChange={setSearch}
-              placeholder="Въведи заглавие..."
+              placeholder={t('plays.searchPlaceholder')}
             />
           </div>
         </div>
@@ -271,7 +273,7 @@ const Plays = () => {
         ) : (
           <div className="plays-layout">
             <aside className="filters-sidebar">
-              <h3>Филтриране по:</h3>
+              <h3>{t('plays.filterBy')}</h3>
               <div className="filter-actions">
                 <button
                   className="btn btn--filter"
@@ -279,7 +281,7 @@ const Plays = () => {
                   type="button"
                   disabled={loading}
                 >
-                  {loading ? 'Зареждане...' : 'Приложи филтри'}
+                  {loading ? t('common.loading') : t('plays.applyFilters')}
                 </button>
                 <button
                   className="btn btn--ghost btn--filter"
@@ -287,7 +289,7 @@ const Plays = () => {
                   type="button"
                   disabled={loading}
                 >
-                  Изчисти
+                  {t('plays.clearFilters')}
                 </button>
               </div>
               <div className="filter-group">
@@ -296,7 +298,7 @@ const Plays = () => {
                   onClick={() => toggleFilter('genre')}
                   type="button"
                 >
-                  <span>ЖАНР</span>
+                  <span>{t('plays.genre')}</span>
                   <span className="filter-toggle">
                     {expandedFilters.genre ? '−' : '+'}
                   </span>
@@ -307,7 +309,7 @@ const Plays = () => {
                       value={selectedGenre}
                       onChange={(e) => setSelectedGenre(e.target.value)}
                     >
-                      <option value="all">Всички жанрове</option>
+                      <option value="all">{t('plays.allGenres')}</option>
                       {genres.map((genre) => (
                         <option key={genre} value={genre}>
                           {genre}
@@ -323,7 +325,7 @@ const Plays = () => {
                   onClick={() => toggleFilter('year')}
                   type="button"
                 >
-                  <span>ГОДИНА</span>
+                  <span>{t('plays.year')}</span>
                   <span className="filter-toggle">
                     {expandedFilters.year ? '−' : '+'}
                   </span>
@@ -333,7 +335,7 @@ const Plays = () => {
                     <div className="range-inputs">
                       <input
                         type="number"
-                        placeholder="От"
+                        placeholder={t('plays.from')}
                         value={yearMin}
                         onChange={(e) =>
                           setYearMin(e.target.value === '' ? '' : Number(e.target.value))
@@ -343,7 +345,7 @@ const Plays = () => {
                       />
                       <input
                         type="number"
-                        placeholder="До"
+                        placeholder={t('plays.to')}
                         value={yearMax}
                         onChange={(e) =>
                           setYearMax(e.target.value === '' ? '' : Number(e.target.value))
@@ -361,7 +363,7 @@ const Plays = () => {
                   onClick={() => toggleFilter('cast')}
                   type="button"
                 >
-                  <span>ДЕЙСТВАЩИ ЛИЦА</span>
+                  <span>{t('plays.cast')}</span>
                   <span className="filter-toggle">
                     {expandedFilters.cast ? '−' : '+'}
                   </span>
@@ -400,7 +402,7 @@ const Plays = () => {
                   </div>
                   <div className="slider-group">
                     <label>
-                      Жени:
+                      {t('plays.females')}
                     </label>
                     <div className="range-values">
                       <input
@@ -437,7 +439,7 @@ const Plays = () => {
                   onClick={() => toggleFilter('theme')}
                   type="button"
                 >
-                  <span>TEMA</span>
+                  <span>{t('plays.theme')}</span>
                   <span className="filter-toggle">
                     {expandedFilters.theme ? '−' : '+'}
                   </span>
@@ -466,7 +468,7 @@ const Plays = () => {
                 ))}
               </div>
               {!filteredPlays.length && (
-                <p className="muted">Няма резултат по зададените критерии.</p>
+                <p className="muted">{t('plays.noResults')}</p>
               )}
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import AuthorCard from '../components/AuthorCard'
 import ErrorMessage from '../components/ErrorMessage'
 import Loader from '../components/Loader'
@@ -7,6 +8,7 @@ import { api } from '../services/api'
 import type { Author } from '../types'
 
 const Authors = () => {
+  const { t } = useTranslation()
   const [authors, setAuthors] = useState<Author[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -18,13 +20,13 @@ const Authors = () => {
         const data = await api.getAuthors()
         setAuthors(data)
       } catch {
-        setError('Неуспешно зареждане на автори.')
+        setError(t('authors.loadError'))
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [])
+  }, [t])
 
   const filteredAuthors = useMemo(() => {
     return authors.filter((author) =>
@@ -37,14 +39,14 @@ const Authors = () => {
       <section className="section">
         <div className="section__header">
           <div>
-            <p className="eyebrow">Колекция от творци</p>
-            <h1>Автори</h1>
+            <p className="eyebrow">{t('authors.eyebrow')}</p>
+            <h1>{t('authors.title')}</h1>
           </div>
           <SearchBar
-            label="Търсене на автор"
+            label={t('authors.searchLabel')}
             value={search}
             onChange={setSearch}
-            placeholder="Напиши име..."
+            placeholder={t('authors.searchPlaceholder')}
           />
         </div>
         {loading ? (
@@ -57,7 +59,7 @@ const Authors = () => {
               <AuthorCard key={author.id} author={author} />
             ))}
             {!filteredAuthors.length && (
-              <p className="muted">Няма автори, които да отговарят на търсенето.</p>
+              <p className="muted">{t('authors.noResults')}</p>
             )}
           </div>
         )}
@@ -67,4 +69,3 @@ const Authors = () => {
 }
 
 export default Authors
-

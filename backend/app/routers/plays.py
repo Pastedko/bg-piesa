@@ -6,7 +6,7 @@ from typing import List, Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse, RedirectResponse, Response
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
@@ -38,7 +38,13 @@ def list_plays(
 ) -> List[PlayRead]:
     query = select(Play).options(selectinload(Play.author))
     if search:
-        query = query.where(func.lower(Play.title).like(f"%{search.lower()}%"))
+        pattern = f"%{search.lower()}%"
+        query = query.where(
+            or_(
+                func.lower(Play.title_bg).like(pattern),
+                (Play.title_en.isnot(None)) & (func.lower(Play.title_en).like(pattern)),
+            )
+        )
     if author_id:
         query = query.where(Play.author_id == author_id)
     if genre:
@@ -61,7 +67,7 @@ def list_plays(
         query = query.where(Play.female_participants >= female_participants_min)
     if female_participants_max is not None:
         query = query.where(Play.female_participants <= female_participants_max)
-    plays = session.exec(query.order_by(Play.title)).all()
+    plays = session.exec(query.order_by(Play.title_bg)).all()
     return [PlayRead.from_orm(play) for play in plays]
 
 

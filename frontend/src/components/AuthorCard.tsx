@@ -1,5 +1,7 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { Author } from '../types'
+import { getLocalized } from '../types'
 import { API_BASE } from '../services/api'
 
 type Props = {
@@ -7,6 +9,9 @@ type Props = {
 }
 
 const AuthorCard = ({ author }: Props) => {
+  const { t, i18n } = useTranslation()
+  const bio = getLocalized(author.biography_bg, author.biography_en, i18n.language)
+
   const src = author.photo_url
     ? author.photo_url.startsWith('http')
       ? author.photo_url
@@ -20,9 +25,9 @@ const AuthorCard = ({ author }: Props) => {
       </div>
       <div className="card__body">
         <h3>{author.name}</h3>
-        <p>{author.biography.slice(0, 120)}...</p>
+        <p>{bio.slice(0, 120)}...</p>
         <Link to={`/authors/${author.id}`} className="btn btn--ghost">
-          Виж детайли
+          {t('authors.viewDetails')}
         </Link>
       </div>
     </article>
@@ -30,4 +35,3 @@ const AuthorCard = ({ author }: Props) => {
 }
 
 export default AuthorCard
-

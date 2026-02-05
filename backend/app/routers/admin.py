@@ -7,6 +7,7 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     HTTPException,
     UploadFile,
     status,
@@ -25,6 +26,8 @@ from ..schemas import (
     AuthorUpdate,
     PlayCreate,
     PlayDetail,
+    PlayImageCaptionUpdate,
+    PlayImageRead,
     PlayRead,
     PlayUpdate,
     TokenResponse,
@@ -229,29 +232,73 @@ def upload_play_pdf(
     return PlayRead.from_orm(enriched)
 
 
-@router.post("/plays/{play_id}/upload-images", response_model=PlayDetail)
-def upload_play_images(
+@router.post("/plays/{play_id}/upload-image", response_model=PlayDetail)
+def upload_play_image(
     play_id: int,
-    files: List[UploadFile] = File(...),
+    file: UploadFile = File(...),
+    caption_bg: Optional[str] = Form(None),
+    caption_en: Optional[str] = Form(None),
     session: Session = Depends(get_session),
     _: str = Depends(admin_required),
 ) -> PlayDetail:
+    """Upload a single image with its captions. Call multiple times for multiple images."""
     play = session.get(Play, play_id)
     if not play:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Пиесата не е намерена."
         )
-    for upload in files:
-        # Upload to Cloudinary
-        cloudinary_url = upload_file(upload, "images", name_prefix=f"play-{play_id}")
-        session.add(
-            PlayImage(
-                play_id=play.id,
-                image_url=cloudinary_url,
-            )
+    cloudinary_url = upload_file(file, "images", name_prefix=f"play-{play_id}")
+    session.add(
+        PlayImage(
+            play_id=play.id,
+            image_url=cloudinary_url,
+            caption_bg=caption_bg.strip() if caption_bg and caption_bg.strip() else None,
+            caption_en=caption_en.strip() if caption_en and caption_en.strip() else None,
         )
+    )
     play.updated_at = datetime.utcnow()
     session.commit()
     enriched = _play_with_relations(session, play.id) or play
     return PlayDetail.from_orm(enriched)
+
+
+@router.delete("/plays/{play_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_play_image(
+    play_id: int,
+    image_id: int,
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> None:
+    image = session.get(PlayImage, image_id)
+    if not image or image.play_id != play_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Изображението не е намерено."
+        )
+    if image.image_url.startswith("https://res.cloudinary.com"):
+        delete_file(image.image_url)
+    session.delete(image)
+    session.commit()
+
+
+@router.patch("/plays/{play_id}/images/{image_id}", response_model=PlayImageRead)
+def update_play_image_caption(
+    play_id: int,
+    image_id: int,
+    payload: PlayImageCaptionUpdate,
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> PlayImageRead:
+    image = session.get(PlayImage, image_id)
+    if not image or image.play_id != play_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Изображението не е намерено."
+        )
+    if payload.caption_bg is not None:
+        image.caption_bg = payload.caption_bg or None
+    if payload.caption_en is not None:
+        image.caption_en = payload.caption_en or None
+    session.add(image)
+    session.commit()
+    session.refresh(image)
+    return PlayImageRead.from_orm(image)
 

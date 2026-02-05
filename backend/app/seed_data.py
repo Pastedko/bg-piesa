@@ -10,17 +10,20 @@ def seed_demo_data(session: Session) -> None:
     author_names = {
         "Иван Вазов": Author(
             name="Иван Вазов",
-            biography="Класик на българската литература, автор на множество пиеси и романи.",
+            biography_bg="Класик на българската литература, автор на множество пиеси и романи.",
+            biography_en="Classic of Bulgarian literature, author of many plays and novels.",
             photo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Ivan_Vazov.jpg/330px-Ivan_Vazov.jpg",
         ),
         "Пейо Яворов": Author(
             name="Пейо Яворов",
-            biography="Поет и драматург, свързан със символизма и модернизма в България.",
+            biography_bg="Поет и драматург, свързан със символизма и модернизма в България.",
+            biography_en="Poet and playwright associated with symbolism and modernism in Bulgaria.",
             photo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Pejo_Yavorov.jpg/330px-Pejo_Yavorov.jpg",
         ),
         "Яна Добрева": Author(
             name="Яна Добрева",
-            biography="Съвременен драматург с фокус върху съвременното българско общество.",
+            biography_bg="Съвременен драматург с фокус върху съвременното българско общество.",
+            biography_en="Contemporary playwright focused on contemporary Bulgarian society.",
             photo_url=None,
         ),
     }
@@ -33,9 +36,11 @@ def seed_demo_data(session: Session) -> None:
 
     plays_data = [
         {
-            "title": "Под игото",
+            "title_bg": "Под игото",
+            "title_en": "Under the Yoke",
             "author_name": "Иван Вазов",
-            "description": "Драматизация на знаковия роман за българското възраждане.",
+            "description_bg": "Драматизация на знаковия роман за българското възраждане.",
+            "description_en": "Dramatization of the landmark novel about the Bulgarian Revival.",
             "year": 1894,
             "genre": "Историческа драма",
             "images": [
@@ -44,17 +49,21 @@ def seed_demo_data(session: Session) -> None:
             ],
         },
         {
-            "title": "В полите на Витоша",
+            "title_bg": "В полите на Витоша",
+            "title_en": "On the Slopes of Vitosha",
             "author_name": "Пейо Яворов",
-            "description": "Трагическа пиеса за любов и общество, вдъхновена от истински събития.",
+            "description_bg": "Трагическа пиеса за любов и общество, вдъхновена от истински събития.",
+            "description_en": "Tragic play about love and society, inspired by true events.",
             "year": 1910,
             "genre": "Трагедия",
             "images": ["https://images.unsplash.com/photo-1454922915609-78549ad709bb"],
         },
         {
-            "title": "Гласове в мъглата",
+            "title_bg": "Гласове в мъглата",
+            "title_en": "Voices in the Mist",
             "author_name": "Яна Добрева",
-            "description": "Съвременна урбанистична драма за семейство и памет.",
+            "description_bg": "Съвременна урбанистична драма за семейство и памет.",
+            "description_en": "Contemporary urban drama about family and memory.",
             "year": 2017,
             "genre": "Съвременна драма",
             "images": ["https://images.unsplash.com/photo-1500530855697-b586d89ba3ee"],
@@ -65,12 +74,14 @@ def seed_demo_data(session: Session) -> None:
         author = session.exec(select(Author).where(Author.name == play_data["author_name"])).first()
         if not author:
             continue
-        existing = session.exec(select(Play).where(Play.title == play_data["title"])).first()
+        existing = session.exec(select(Play).where(Play.title_bg == play_data["title_bg"])).first()
         if existing:
             continue
         play = Play(
-            title=play_data["title"],
-            description=play_data["description"],
+            title_bg=play_data["title_bg"],
+            title_en=play_data.get("title_en"),
+            description_bg=play_data["description_bg"],
+            description_en=play_data.get("description_en"),
             year=play_data["year"],
             genre=play_data["genre"],
             author_id=author.id,  # type: ignore[arg-type]

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import AuthorCard from '../components/AuthorCard'
 import ErrorMessage from '../components/ErrorMessage'
@@ -7,26 +8,18 @@ import PlayCard from '../components/PlayCard'
 import { api } from '../services/api'
 import type { Author, Play } from '../types'
 
-const galleryImages = [
-  {
-    url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef',
-    caption: 'Културно наследство',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1485561671471-0afc94eba8dd',
-    caption: 'Сценичен живот',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26',
-    caption: 'Силата на думите',
-  },
-]
-
 const Home = () => {
+  const { t } = useTranslation()
   const [authors, setAuthors] = useState<Author[]>([])
   const [plays, setPlays] = useState<Play[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const galleryImages = [
+    { url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef', captionKey: 'home.galleryCaption1' as const },
+    { url: 'https://images.unsplash.com/photo-1485561671471-0afc94eba8dd', captionKey: 'home.galleryCaption2' as const },
+    { url: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26', captionKey: 'home.galleryCaption3' as const },
+  ]
 
   useEffect(() => {
     const load = async () => {
@@ -37,59 +30,49 @@ const Home = () => {
         ])
         setAuthors(authorsResponse.slice(0, 3))
         setPlays(playsResponse.slice(0, 3))
-      } catch (err) {
-        setError('Грешка при зареждането на данните.')
+      } catch {
+        setError(t('home.loadError'))
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [])
+  }, [t])
 
   return (
     <div className="page">
       <section className="hero">
-        <p className="hero__eyebrow">Сцена за българската драматургия</p>
-        <h1>БГПиеса – Български театър онлайн</h1>
-        <p className="hero__subtitle">
-          Архив и библиотека за съвременни и класически български пиеси.
-          Открийте автори, истории и сценични изображения в единно дигитално
-          пространство.
-        </p>
+        <p className="hero__eyebrow">{t('home.heroEyebrow')}</p>
+        <h1>{t('home.heroTitle')}</h1>
+        <p className="hero__subtitle">{t('home.heroSubtitle')}</p>
         <div className="hero__actions">
           <Link to="/plays" className="btn">
-            Разгледай пиеси
+            {t('home.viewPlays')}
           </Link>
           <Link to="/authors" className="btn btn--outline">
-            Срещни автори
+            {t('home.meetAuthors')}
           </Link>
         </div>
       </section>
 
       <section className="section">
         <div className="section__header">
-          <h2>За нас</h2>
-          <p>
-            БГПиеса събира културната памет на театъра – от класическите текстове
-            до съвременните сцени.
-          </p>
+          <h2>{t('home.aboutTitle')}</h2>
         </div>
         <div className="section__content section__content--split">
-          <p>
-            Екипът ни работи за свободен достъп до българския театрален архив,
-            като комбинира дигитална библиотека, визуална колекция и инструменти
-            за управление на съдържание. Проектът обединява драматурзи, режисьори,
-            изследователи и любители в обща мрежа.
-          </p>
-          <div>
-            <p>Открий:</p>
+          <div className="section__content-left">
+            <p>{t('home.aboutIntro')}</p>
+            <p>{t('home.aboutBody')}</p>
+          </div>
+          <div className="section__content-right">
+            <p>{t('home.discover')}</p>
             <ul>
-              <li>биографии на емблематични автори</li>
-              <li>селекция от театрални текстове</li>
-              <li>галерии със сценични фотографии</li>
+              <li>{t('home.discover1')}</li>
+              <li>{t('home.discover2')}</li>
+              <li>{t('home.discover3')}</li>
             </ul>
             <Link to="/about" className="btn btn--ghost">
-              Научи повече
+              {t('home.learnMore')}
             </Link>
           </div>
         </div>
@@ -97,9 +80,9 @@ const Home = () => {
 
       <section className="section">
         <div className="section__header">
-          <h2>Подбрани автори</h2>
+          <h2>{t('home.featuredAuthors')}</h2>
           <Link to="/authors" className="link">
-            Всички автори →
+            {t('home.allAuthors')} →
           </Link>
         </div>
         {loading ? (
@@ -117,9 +100,9 @@ const Home = () => {
 
       <section className="section">
         <div className="section__header">
-          <h2>Популярни пиеси</h2>
+          <h2>{t('home.popularPlays')}</h2>
           <Link to="/plays" className="link">
-            Всички пиеси →
+            {t('home.allPlays')} →
           </Link>
         </div>
         {loading ? (
@@ -137,14 +120,14 @@ const Home = () => {
 
       <section className="section section--gallery">
         <div className="section__header">
-          <h2>Сцени и снимки</h2>
-          <p>Визуални вдъхновения от българския театър</p>
+          <h2>{t('home.galleryTitle')}</h2>
+          <p>{t('home.gallerySubtitle')}</p>
         </div>
         <div className="gallery__grid">
           {galleryImages.map((item) => (
             <figure key={item.url}>
-              <img src={item.url} alt={item.caption} />
-              <figcaption>{item.caption}</figcaption>
+              <img src={item.url} alt={t(item.captionKey)} />
+              <figcaption>{t(item.captionKey)}</figcaption>
             </figure>
           ))}
         </div>
@@ -154,4 +137,3 @@ const Home = () => {
 }
 
 export default Home
-

@@ -8,7 +8,8 @@ from pydantic import BaseModel
 
 class AuthorBase(BaseModel):
     name: str
-    biography: str
+    biography_bg: str
+    biography_en: Optional[str] = None
     # Use snake_case in JSON to match frontend types
     photo_url: Optional[str] = None
 
@@ -19,22 +20,32 @@ class AuthorCreate(AuthorBase):
 
 class AuthorUpdate(BaseModel):
     name: Optional[str] = None
-    biography: Optional[str] = None
+    biography_bg: Optional[str] = None
+    biography_en: Optional[str] = None
     photo_url: Optional[str] = None
+
+
+class PlayImageCaptionUpdate(BaseModel):
+    caption_bg: Optional[str] = None
+    caption_en: Optional[str] = None
 
 
 class PlayImageRead(BaseModel):
     id: int
     # Use snake_case in JSON to match frontend types
     image_url: str
+    caption_bg: Optional[str] = None
+    caption_en: Optional[str] = None
 
     class Config:
         orm_mode = True
 
 
 class PlayBase(BaseModel):
-    title: str
-    description: str
+    title_bg: str
+    title_en: Optional[str] = None
+    description_bg: str
+    description_en: Optional[str] = None
     year: Optional[int] = None
     genre: Optional[str] = None
     theme: Optional[str] = None
@@ -50,8 +61,10 @@ class PlayCreate(PlayBase):
 
 
 class PlayUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
+    title_bg: Optional[str] = None
+    title_en: Optional[str] = None
+    description_bg: Optional[str] = None
+    description_en: Optional[str] = None
     year: Optional[int] = None
     genre: Optional[str] = None
     theme: Optional[str] = None

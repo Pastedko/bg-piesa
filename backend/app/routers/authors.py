@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
@@ -45,10 +45,14 @@ def get_author(
         )
     plays_query = select(Play).where(Play.author_id == author.id)
     if play_search:
+        pattern = f"%{play_search.lower()}%"
         plays_query = plays_query.where(
-            func.lower(Play.title).like(f"%{play_search.lower()}%")
+            or_(
+                func.lower(Play.title_bg).like(pattern),
+                (Play.title_en.isnot(None)) & (func.lower(Play.title_en).like(pattern)),
+            )
         )
-    plays = session.exec(plays_query.order_by(Play.title)).all()
+    plays = session.exec(plays_query.order_by(Play.title_bg)).all()
     author_dict = AuthorRead.from_orm(author).dict()
     author_dict["plays"] = [PlayRead.from_orm(play) for play in plays]
     return AuthorDetail.parse_obj(author_dict)
