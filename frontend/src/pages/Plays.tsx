@@ -141,16 +141,6 @@ const Plays = () => {
       : { min: 1900, max: new Date().getFullYear() }
   }, [allPlays])
 
-  const durations = useMemo(() => {
-    const durationsList = allPlays
-      .map((play) => play.duration)
-      .filter((duration): duration is number => duration !== null && duration !== undefined)
-      .sort((a, b) => a - b)
-    return durationsList.length > 0
-      ? { min: durationsList[0], max: durationsList[durationsList.length - 1] }
-      : { min: 0, max: 300 }
-  }, [allPlays])
-
   const participantsRange = useMemo(() => {
     const allMale = allPlays
       .map((play) => play.male_participants)
