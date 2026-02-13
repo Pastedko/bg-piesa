@@ -1,8 +1,10 @@
 import type {
   Author,
   AuthorDetail,
+  LiteraryPiece,
   Play,
   PlayDetail,
+  PlayFile,
   PlayImage,
   TokenResponse,
 } from '../types'
@@ -70,6 +72,16 @@ export const api = {
     return request<Play[]>(`/api/plays${query ? `?${query}` : ''}`)
   },
   getPlay: (id: string) => request<PlayDetail>(`/api/plays/${id}`),
+  getLibrary: (filters?: { search?: string; authorId?: string; playId?: number }) => {
+    const params = new URLSearchParams()
+    if (filters?.search) params.set('search', filters.search)
+    if (filters?.authorId) params.set('author_id', filters.authorId)
+    if (filters?.playId !== undefined && filters?.playId !== null)
+      params.set('play_id', String(filters.playId))
+    const query = params.toString()
+    return request<LiteraryPiece[]>(`/api/library${query ? `?${query}` : ''}`)
+  },
+  getLiteraryPiece: (id: string) => request<LiteraryPiece>(`/api/library/${id}`),
   login: (password: string) =>
     request<TokenResponse>(`/api/admin/login`, {
       method: 'POST',
@@ -103,6 +115,42 @@ export const api = {
     }, token),
   deletePlay: (id: number, token: string) =>
     request<void>(`/api/admin/plays/${id}`, { method: 'DELETE' }, token),
+  createLiteraryPiece: (
+    payload: Partial<LiteraryPiece>,
+    token: string
+  ) =>
+    request<LiteraryPiece>(`/api/admin/library`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, token),
+  updateLiteraryPiece: (
+    id: number,
+    payload: Partial<LiteraryPiece>,
+    token: string
+  ) =>
+    request<LiteraryPiece>(`/api/admin/library/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }, token),
+  deleteLiteraryPiece: (id: number, token: string) =>
+    request<void>(`/api/admin/library/${id}`, { method: 'DELETE' }, token),
+  uploadLiteraryPiecePdf: (id: number, file: File, token: string) => {
+    const data = new FormData()
+    data.append('file', file)
+    return fetch(`${API_BASE}/api/admin/library/${id}/upload-pdf`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: data,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || 'Качването на PDF е неуспешно.')
+      }
+      return res.json() as Promise<LiteraryPiece>
+    })
+  },
+  viewLiteraryPiecePdfUrl: (id: number) =>
+    `${API_BASE}/api/library/${id}/download-pdf`,
   uploadAuthorPhoto: (id: number, file: File, token: string) => {
     const data = new FormData()
     data.append('file', file)
@@ -155,6 +203,41 @@ export const api = {
   },
   deletePlayImage: (playId: number, imageId: number, token: string) =>
     request<void>(`/api/admin/plays/${playId}/images/${imageId}`, { method: 'DELETE' }, token),
+  uploadPlayFile: (
+    id: number,
+    file: File,
+    token: string,
+    captions?: { caption_bg?: string; caption_en?: string }
+  ) => {
+    const data = new FormData()
+    data.append('file', file)
+    if (captions?.caption_bg) data.append('caption_bg', captions.caption_bg)
+    if (captions?.caption_en) data.append('caption_en', captions.caption_en)
+    return fetch(`${API_BASE}/api/admin/plays/${id}/upload-file`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: data,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || 'Качването на файла е неуспешно.')
+      }
+      return res.json() as Promise<PlayDetail>
+    })
+  },
+  deletePlayFile: (playId: number, fileId: number, token: string) =>
+    request<void>(`/api/admin/plays/${playId}/files/${fileId}`, { method: 'DELETE' }, token),
+  updatePlayFileCaption: (
+    playId: number,
+    fileId: number,
+    payload: { caption_bg?: string; caption_en?: string },
+    token: string
+  ) =>
+    request<PlayFile>(
+      `/api/admin/plays/${playId}/files/${fileId}`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+      token
+    ),
   updatePlayImageCaption: (
     playId: number,
     imageId: number,
@@ -167,5 +250,7 @@ export const api = {
       token
     ),
   downloadPdfUrl: (id: number) => `${API_BASE}/api/plays/${id}/download-pdf`,
+  viewFileUrl: (playId: number, fileId: number) =>
+    `${API_BASE}/api/plays/${playId}/files/${fileId}/view`,
 }
 

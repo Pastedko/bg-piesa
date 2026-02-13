@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from .core.config import get_settings
 from .database import init_db, session_scope
 from .migrations import run_migrations
-from .routers import admin, authors, plays
+from .routers import admin, authors, library, plays
 from .seed_data import seed_demo_data
 
 
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
 
     app.include_router(authors.router)
     app.include_router(plays.router)
+    app.include_router(library.router)
     app.include_router(admin.router)
 
     app.mount(

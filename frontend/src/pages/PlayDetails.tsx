@@ -68,7 +68,10 @@ const PlayDetails = () => {
         </div>
         <p>{description}</p>
 
-        <div className="actions">
+        <div className="actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <Link to={`/library?author=${play.author_id}`} className="btn btn--ghost">
+            {t('playDetail.literature')}
+          </Link>
           {play.pdf_path ? (
             <>
               <button
@@ -121,6 +124,30 @@ const PlayDetails = () => {
         <h2>{t('playDetail.gallery')}</h2>
         <ImageGallery images={galleryImages} emptyMessage={t('playDetail.galleryEmpty')} />
       </section>
+      {(play.files ?? []).length > 0 && (
+        <section className="section">
+          <h2>{t('playDetail.files')}</h2>
+          <ul className="file-list">
+            {(play.files ?? []).map((f) => (
+              <li key={f.id} className="file-list__item">
+                <a
+                  href={api.viewFileUrl(play.id, f.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="file-list__link"
+                >
+                  {f.file_url.split('/').pop()?.split('?')[0] ?? t('playDetail.downloadFile')}
+                </a>
+                {(f.caption_bg || f.caption_en) && (
+                  <p className="file-list__caption muted">
+                    {getLocalized(f.caption_bg ?? null, f.caption_en ?? null, lang)}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }

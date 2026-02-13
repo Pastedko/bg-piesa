@@ -18,14 +18,19 @@ from sqlmodel import Session, select
 from ..core.cloudinary_service import delete_file, upload_file
 from ..core.security import admin_required, create_access_token, verify_admin_password
 from ..database import get_session
-from ..models import Author, Play, PlayImage
+from ..models import Author, LiteraryPiece, Play, PlayFile, PlayImage
 from ..schemas import (
     AdminLoginRequest,
     AuthorCreate,
     AuthorRead,
     AuthorUpdate,
+    LiteraryPieceCreate,
+    LiteraryPieceRead,
+    LiteraryPieceUpdate,
     PlayCreate,
     PlayDetail,
+    PlayFileCaptionUpdate,
+    PlayFileRead,
     PlayImageCaptionUpdate,
     PlayImageRead,
     PlayRead,
@@ -41,7 +46,11 @@ def _play_with_relations(session: Session, play_id: int) -> Optional[Play]:
     return session.exec(
         select(Play)
         .where(Play.id == play_id)
-        .options(selectinload(Play.author), selectinload(Play.images))
+        .options(
+            selectinload(Play.author),
+            selectinload(Play.images),
+            selectinload(Play.files),
+        )
     ).first()
 
 
@@ -178,6 +187,10 @@ def delete_play(
     for image in play.images:
         if image.image_url.startswith("https://res.cloudinary.com"):
             delete_file(image.image_url)
+    # Delete files from Cloudinary
+    for f in play.files:
+        if f.file_url.startswith("https://res.cloudinary.com"):
+            delete_file(f.file_url)
     session.delete(play)
     session.commit()
 
@@ -278,6 +291,176 @@ def delete_play_image(
         delete_file(image.image_url)
     session.delete(image)
     session.commit()
+
+
+@router.post("/plays/{play_id}/upload-file", response_model=PlayDetail)
+def upload_play_file(
+    play_id: int,
+    file: UploadFile = File(...),
+    caption_bg: Optional[str] = Form(None),
+    caption_en: Optional[str] = Form(None),
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> PlayDetail:
+    """Upload a single file with its captions. Call multiple times for multiple files."""
+    play = session.get(Play, play_id)
+    if not play:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Пиесата не е намерена."
+        )
+    cloudinary_url = upload_file(file, "files", name_prefix=f"play-{play_id}")
+    session.add(
+        PlayFile(
+            play_id=play.id,
+            file_url=cloudinary_url,
+            caption_bg=caption_bg.strip() if caption_bg and caption_bg.strip() else None,
+            caption_en=caption_en.strip() if caption_en and caption_en.strip() else None,
+        )
+    )
+    play.updated_at = datetime.utcnow()
+    session.commit()
+    enriched = _play_with_relations(session, play.id) or play
+    return PlayDetail.from_orm(enriched)
+
+
+@router.delete("/plays/{play_id}/files/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_play_file(
+    play_id: int,
+    file_id: int,
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> None:
+    f = session.get(PlayFile, file_id)
+    if not f or f.play_id != play_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Файлът не е намерен."
+        )
+    if f.file_url.startswith("https://res.cloudinary.com"):
+        delete_file(f.file_url)
+    session.delete(f)
+    session.commit()
+
+
+@router.patch("/plays/{play_id}/files/{file_id}", response_model=PlayFileRead)
+def update_play_file_caption(
+    play_id: int,
+    file_id: int,
+    payload: PlayFileCaptionUpdate,
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> PlayFileRead:
+    f = session.get(PlayFile, file_id)
+    if not f or f.play_id != play_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Файлът не е намерен."
+        )
+    if payload.caption_bg is not None:
+        f.caption_bg = payload.caption_bg or None
+    if payload.caption_en is not None:
+        f.caption_en = payload.caption_en or None
+    session.add(f)
+    session.commit()
+    session.refresh(f)
+    return PlayFileRead.from_orm(f)
+
+
+@router.post("/library", response_model=LiteraryPieceRead)
+def create_literary_piece(
+    piece_in: LiteraryPieceCreate,
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> LiteraryPieceRead:
+    piece = LiteraryPiece(**piece_in.dict())
+    session.add(piece)
+    session.commit()
+    session.refresh(piece)
+    piece = session.exec(
+        select(LiteraryPiece)
+        .where(LiteraryPiece.id == piece.id)
+        .options(
+            selectinload(LiteraryPiece.author),
+            selectinload(LiteraryPiece.play),
+        )
+    ).first()
+    return LiteraryPieceRead.from_orm(piece)
+
+
+@router.put("/library/{piece_id}", response_model=LiteraryPieceRead)
+def update_literary_piece(
+    piece_id: int,
+    piece_in: LiteraryPieceUpdate,
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> LiteraryPieceRead:
+    piece = session.get(LiteraryPiece, piece_id)
+    if not piece:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Литературното произведение не е намерено.",
+        )
+    for key, value in piece_in.dict(exclude_unset=True).items():
+        setattr(piece, key, value)
+    piece.updated_at = datetime.utcnow()
+    session.add(piece)
+    session.commit()
+    piece = session.exec(
+        select(LiteraryPiece)
+        .where(LiteraryPiece.id == piece_id)
+        .options(
+            selectinload(LiteraryPiece.author),
+            selectinload(LiteraryPiece.play),
+        )
+    ).first()
+    return LiteraryPieceRead.from_orm(piece)
+
+
+@router.delete("/library/{piece_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_literary_piece(
+    piece_id: int,
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> None:
+    piece = session.get(LiteraryPiece, piece_id)
+    if not piece:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Литературното произведение не е намерено.",
+        )
+    if piece.pdf_path and piece.pdf_path.startswith("https://res.cloudinary.com"):
+        delete_file(piece.pdf_path)
+    session.delete(piece)
+    session.commit()
+
+
+@router.post("/library/{piece_id}/upload-pdf", response_model=LiteraryPieceRead)
+def upload_literary_piece_pdf(
+    piece_id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    _: str = Depends(admin_required),
+) -> LiteraryPieceRead:
+    piece = session.get(LiteraryPiece, piece_id)
+    if not piece:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Литературното произведение не е намерено.",
+        )
+    if piece.pdf_path and piece.pdf_path.startswith("https://res.cloudinary.com"):
+        delete_file(piece.pdf_path)
+    cloudinary_url = upload_file(file, "pdfs", name_prefix=f"piece-{piece_id}")
+    piece.pdf_path = cloudinary_url
+    piece.updated_at = datetime.utcnow()
+    session.add(piece)
+    session.commit()
+    piece = session.exec(
+        select(LiteraryPiece)
+        .where(LiteraryPiece.id == piece_id)
+        .options(
+            selectinload(LiteraryPiece.author),
+            selectinload(LiteraryPiece.play),
+        )
+    ).first()
+    return LiteraryPieceRead.from_orm(piece)
 
 
 @router.patch("/plays/{play_id}/images/{image_id}", response_model=PlayImageRead)

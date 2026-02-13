@@ -15,6 +15,13 @@ export type PlayImage = {
   caption_en?: string | null
 }
 
+export type PlayFile = {
+  id: number
+  file_url: string
+  caption_bg?: string | null
+  caption_en?: string | null
+}
+
 export type Play = {
   id: number
   title_bg: string
@@ -52,6 +59,22 @@ export type AuthorDetail = Author & {
 
 export type PlayDetail = Play & {
   images: PlayImage[]
+  files: PlayFile[]
+}
+
+export type LiteraryPiece = {
+  id: number
+  title_bg: string
+  title_en?: string | null
+  description_bg: string
+  description_en?: string | null
+  pdf_path?: string | null
+  author_id: number
+  play_id?: number | null
+  author?: Author
+  play?: Play
+  created_at: string
+  updated_at: string
 }
 
 export type TokenResponse = {

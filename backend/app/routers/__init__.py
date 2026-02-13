@@ -1,6 +1,6 @@
 """Router exports."""
 
-from . import admin, authors, plays
+from . import admin, authors, library, plays
 
-__all__ = ["admin", "authors", "plays"]
+__all__ = ["admin", "authors", "library", "plays"]
 

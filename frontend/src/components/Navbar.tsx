@@ -6,6 +6,7 @@ const navLinks = [
   { to: '/', labelKey: 'nav.home' },
   { to: '/authors', labelKey: 'nav.authors' },
   { to: '/plays', labelKey: 'nav.plays' },
+  { to: '/library', labelKey: 'nav.library' },
   { to: '/about', labelKey: 'nav.about' },
   { to: '/admin', labelKey: 'nav.admin' },
 ] as const

@@ -129,9 +129,85 @@ def migrate_bilingual() -> None:
             print(f"Bilingual migration error (non-critical): {e}")
 
 
+def table_exists(table_name: str) -> bool:
+    """Check if a table exists."""
+    try:
+        inspector = inspect(engine)
+        return table_name in inspector.get_table_names()
+    except Exception:
+        return False
+
+
+def migrate_playfile_table() -> None:
+    """Create playfile table if it doesn't exist."""
+    try:
+        if table_exists("playfile"):
+            return
+        with Session(engine) as session:
+            session.exec(text("""
+                CREATE TABLE playfile (
+                    id SERIAL PRIMARY KEY,
+                    file_url VARCHAR NOT NULL,
+                    caption_bg VARCHAR,
+                    caption_en VARCHAR,
+                    play_id INTEGER NOT NULL REFERENCES play(id) ON DELETE CASCADE
+                )
+            """))
+            session.commit()
+            print("Created playfile table")
+    except Exception as e:
+        if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+            return
+        if "does not exist" not in str(e).lower() and "relation" not in str(e).lower():
+            print(f"Migration error playfile (non-critical): {e}")
+
+
+def migrate_literarypiece_table() -> None:
+    """Create literarypiece table if it doesn't exist."""
+    try:
+        if table_exists("literarypiece"):
+            return
+        with Session(engine) as session:
+            session.exec(text("""
+                CREATE TABLE literarypiece (
+                    id SERIAL PRIMARY KEY,
+                    title_bg VARCHAR NOT NULL,
+                    title_en VARCHAR,
+                    description_bg VARCHAR NOT NULL,
+                    description_en VARCHAR,
+                    pdf_path VARCHAR,
+                    author_id INTEGER NOT NULL REFERENCES author(id) ON DELETE CASCADE,
+                    play_id INTEGER REFERENCES play(id) ON DELETE SET NULL,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP
+                )
+            """))
+            session.commit()
+            print("Created literarypiece table")
+    except Exception as e:
+        if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+            return
+        if "does not exist" not in str(e).lower() and "relation" not in str(e).lower():
+            print(f"Migration error literarypiece (non-critical): {e}")
+
+
+def migrate_literarypiece_pdf_path() -> None:
+    """Add pdf_path column to literarypiece table if it doesn't exist."""
+    try:
+        if not table_exists("literarypiece"):
+            return
+        add_column_if_not_exists("literarypiece", "pdf_path", "VARCHAR")
+    except Exception as e:
+        if "does not exist" not in str(e).lower() and "relation" not in str(e).lower():
+            print(f"Migration error literarypiece pdf_path (non-critical): {e}")
+
+
 def run_migrations() -> None:
     """Run all pending migrations."""
     migrate_play_table()
     migrate_drop_duration()
     migrate_play_image_captions()
     migrate_bilingual()
+    migrate_playfile_table()
+    migrate_literarypiece_table()
+    migrate_literarypiece_pdf_path()

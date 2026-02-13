@@ -7,6 +7,15 @@ import SearchBar from '../components/SearchBar'
 import { api } from '../services/api'
 import type { Play } from '../types'
 
+const PERIODS = [
+  { value: 'all', min: null, max: null },
+  { value: '1856-1878', min: 1856, max: 1878 },
+  { value: '1879-1900', min: 1879, max: 1900 },
+  { value: '1901-1944', min: 1901, max: 1944 },
+  { value: '1945-1989', min: 1945, max: 1989 },
+  { value: '1900-today', min: 1900, max: null },
+] as const
+
 const Plays = () => {
   const { t } = useTranslation()
   const [plays, setPlays] = useState<Play[]>([])
@@ -17,6 +26,7 @@ const Plays = () => {
   // UI filter states (what user is selecting)
   const [selectedGenre, setSelectedGenre] = useState<string>('all')
   const [selectedTheme, setSelectedTheme] = useState<string>('all')
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('all')
   const [yearMin, setYearMin] = useState<number | ''>('')
   const [yearMax, setYearMax] = useState<number | ''>('')
   const [maleParticipantsMin, setMaleParticipantsMin] = useState<number>(0)
@@ -27,6 +37,7 @@ const Plays = () => {
   // Applied filter states (what's actually being used to filter)
   const [appliedGenre, setAppliedGenre] = useState<string>('all')
   const [appliedTheme, setAppliedTheme] = useState<string>('all')
+  const [appliedPeriod, setAppliedPeriod] = useState<string>('all')
   const [appliedYearMin, setAppliedYearMin] = useState<number | ''>('')
   const [appliedYearMax, setAppliedYearMax] = useState<number | ''>('')
   const [appliedMaleParticipantsMin, setAppliedMaleParticipantsMin] = useState<number>(0)
@@ -38,6 +49,7 @@ const Plays = () => {
   const [expandedFilters, setExpandedFilters] = useState<Record<string, boolean>>({
     cast: false,
     year: false,
+    period: false,
     genre: false,
     theme: false,
   })
@@ -72,6 +84,7 @@ const Plays = () => {
   const clearFilters = async () => {
     setSelectedGenre('all')
     setSelectedTheme('all')
+    setSelectedPeriod('all')
     setYearMin('')
     setYearMax('')
     setMaleParticipantsMin(0)
@@ -81,6 +94,7 @@ const Plays = () => {
     
     setAppliedGenre('all')
     setAppliedTheme('all')
+    setAppliedPeriod('all')
     setAppliedYearMin('')
     setAppliedYearMax('')
     setAppliedMaleParticipantsMin(0)
@@ -168,6 +182,7 @@ const Plays = () => {
       // Update applied filters
       setAppliedGenre(selectedGenre)
       setAppliedTheme(selectedTheme)
+      setAppliedPeriod(selectedPeriod)
       setAppliedYearMin(yearMin)
       setAppliedYearMax(yearMax)
       setAppliedMaleParticipantsMin(maleParticipantsMin)
@@ -221,8 +236,18 @@ const Plays = () => {
     }
   }, [participantsRange, maleParticipantsMax, femaleParticipantsMax])
 
-  // Plays are already filtered by the API
-  const filteredPlays = plays
+  // Client-side period filter (frontend only)
+  const filteredPlays = useMemo(() => {
+    if (appliedPeriod === 'all') return plays
+    const period = PERIODS.find((p) => p.value === appliedPeriod)
+    if (!period || (!period.min && period.max === null)) return plays
+    const maxYear = period.max ?? new Date().getFullYear()
+    return plays.filter((play) => {
+      const year = play.year
+      if (year == null) return false
+      return year >= (period.min ?? 0) && year <= maxYear
+    })
+  }, [plays, appliedPeriod])
 
   return (
     <div className="page">
@@ -329,6 +354,32 @@ const Plays = () => {
                         max={years.max}
                       />
                     </div>
+                  </div>
+                )}
+              </div>
+              <div className="filter-group">
+                <button
+                  className="filter-label"
+                  onClick={() => toggleFilter('period')}
+                  type="button"
+                >
+                  <span>{t('plays.period')}</span>
+                  <span className="filter-toggle">
+                    {expandedFilters.period ? '−' : '+'}
+                  </span>
+                </button>
+                {expandedFilters.period && (
+                  <div className="filter-content">
+                    <select
+                      value={selectedPeriod}
+                      onChange={(e) => setSelectedPeriod(e.target.value)}
+                    >
+                      {PERIODS.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {t(`plays.periods.${p.value}`)}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
               </div>

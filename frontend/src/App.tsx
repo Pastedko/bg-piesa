@@ -6,6 +6,8 @@ import Admin from './pages/Admin'
 import AuthorDetails from './pages/AuthorDetails'
 import Authors from './pages/Authors'
 import Home from './pages/Home'
+import Library from './pages/Library'
+import LibraryDetail from './pages/LibraryDetail'
 import PlayDetails from './pages/PlayDetails'
 import Plays from './pages/Plays'
 import './App.css'
@@ -23,6 +25,8 @@ function App() {
           <Route path="/authors/:id" element={<AuthorDetails />} />
           <Route path="/plays" element={<Plays />} />
           <Route path="/plays/:id" element={<PlayDetails />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/library/:id" element={<LibraryDetail />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </main>

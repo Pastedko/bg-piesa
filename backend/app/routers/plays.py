@@ -12,7 +12,7 @@ from sqlmodel import Session, select
 
 from ..core.config import get_settings
 from ..database import get_session
-from ..models import Play
+from ..models import Play, PlayFile
 from ..schemas import PlayDetail, PlayRead
 
 
@@ -70,7 +70,11 @@ def get_play(play_id: int, session: Session = Depends(get_session)) -> PlayDetai
     play = session.exec(
         select(Play)
             .where(Play.id == play_id)
-            .options(selectinload(Play.author), selectinload(Play.images))
+            .options(
+                selectinload(Play.author),
+                selectinload(Play.images),
+                selectinload(Play.files),
+            )
     ).first()
     if not play:
         raise HTTPException(
@@ -97,7 +101,7 @@ def download_pdf(play_id: int, session: Session = Depends(get_session)):
                     content=response.content,
                     media_type="application/pdf",
                     headers={
-                        "Content-Disposition": f'attachment; filename="play-{play_id}-script.pdf"',
+                        "Content-Disposition": f'inline; filename="play-{play_id}-script.pdf"',
                         "Content-Length": str(len(response.content)),
                     },
                 )
@@ -111,5 +115,42 @@ def download_pdf(play_id: int, session: Session = Depends(get_session)):
         pdf_path = settings.media_root / pdf_path
     if not pdf_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Файлът липсва.")
-    return FileResponse(pdf_path, media_type="application/pdf", filename=pdf_path.name)
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=pdf_path.name,
+        headers={"Content-Disposition": f'inline; filename="{pdf_path.name}"'},
+    )
+
+
+@router.get("/{play_id}/files/{file_id}/view")
+def view_play_file(play_id: int, file_id: int, session: Session = Depends(get_session)):
+    """Serve a play file with inline disposition so it opens in the browser viewer."""
+    f = session.get(PlayFile, file_id)
+    if not f or f.play_id != play_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Файлът не е намерен."
+        )
+    if not f.file_url.startswith("http"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Файлът не е достъпен."
+        )
+    try:
+        with httpx.Client() as client:
+            response = client.get(f.file_url, timeout=30.0)
+            response.raise_for_status()
+        filename = f.file_url.split("/")[-1].split("?")[0] or "file"
+        content_type = response.headers.get(
+            "content-type", "application/octet-stream"
+        ).split(";")[0]
+        return Response(
+            content=response.content,
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f'inline; filename="{filename}"',
+                "Content-Length": str(len(response.content)),
+            },
+        )
+    except Exception:
+        return RedirectResponse(url=f.file_url, status_code=302)
 

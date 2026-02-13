@@ -24,6 +24,10 @@ class Author(SQLModel, table=True):
         back_populates="author",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+    literary_pieces: List["LiteraryPiece"] = Relationship(
+        back_populates="author",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
 
 
 class Play(SQLModel, table=True):
@@ -47,6 +51,13 @@ class Play(SQLModel, table=True):
         back_populates="play",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+    files: List["PlayFile"] = Relationship(
+        back_populates="play",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    literary_pieces: List["LiteraryPiece"] = Relationship(
+        back_populates="play",
+    )
 
 
 class PlayImage(SQLModel, table=True):
@@ -57,4 +68,30 @@ class PlayImage(SQLModel, table=True):
     play_id: int = Field(foreign_key="play.id", nullable=False)
 
     play: "Play" = Relationship(back_populates="images")
+
+
+class PlayFile(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    file_url: str = Field(nullable=False)
+    caption_bg: Optional[str] = Field(default=None)
+    caption_en: Optional[str] = Field(default=None)
+    play_id: int = Field(foreign_key="play.id", nullable=False)
+
+    play: "Play" = Relationship(back_populates="files")
+
+
+class LiteraryPiece(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title_bg: str = Field(nullable=False, index=True)
+    title_en: Optional[str] = Field(default=None)
+    description_bg: str = Field(nullable=False)
+    description_en: Optional[str] = Field(default=None)
+    pdf_path: Optional[str] = Field(default=None)
+    author_id: int = Field(foreign_key="author.id", nullable=False)
+    play_id: Optional[int] = Field(default=None, foreign_key="play.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+    author: "Author" = Relationship(back_populates="literary_pieces")
+    play: Optional["Play"] = Relationship(back_populates="literary_pieces")
 

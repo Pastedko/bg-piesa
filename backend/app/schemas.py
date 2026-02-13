@@ -41,6 +41,21 @@ class PlayImageRead(BaseModel):
         orm_mode = True
 
 
+class PlayFileRead(BaseModel):
+    id: int
+    file_url: str
+    caption_bg: Optional[str] = None
+    caption_en: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class PlayFileCaptionUpdate(BaseModel):
+    caption_bg: Optional[str] = None
+    caption_en: Optional[str] = None
+
+
 class PlayBase(BaseModel):
     title_bg: str
     title_en: Optional[str] = None
@@ -95,10 +110,46 @@ class PlayRead(PlayBase):
 
 class PlayDetail(PlayRead):
     images: List[PlayImageRead] = []
+    files: List[PlayFileRead] = []
 
 
 class AuthorDetail(AuthorRead):
     plays: List[PlayRead] = []
+
+
+class LiteraryPieceBase(BaseModel):
+    title_bg: str
+    title_en: Optional[str] = None
+    description_bg: str
+    description_en: Optional[str] = None
+    pdf_path: Optional[str] = None
+    author_id: int
+    play_id: Optional[int] = None
+
+
+class LiteraryPieceCreate(LiteraryPieceBase):
+    pass
+
+
+class LiteraryPieceUpdate(BaseModel):
+    title_bg: Optional[str] = None
+    title_en: Optional[str] = None
+    description_bg: Optional[str] = None
+    description_en: Optional[str] = None
+    pdf_path: Optional[str] = None
+    author_id: Optional[int] = None
+    play_id: Optional[int] = None
+
+
+class LiteraryPieceRead(LiteraryPieceBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    author: Optional[AuthorRead] = None
+    play: Optional[PlayRead] = None
+
+    class Config:
+        orm_mode = True
 
 
 class AdminLoginRequest(BaseModel):
